@@ -1,11 +1,14 @@
-from typing import TYPE_CHECKING, Union, Tuple, Any, Dict, Optional, List
+"""Tasks for querying a database with SQLAlchemy"""
+
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from prefect import task
 from sqlalchemy.sql import text
 
 if TYPE_CHECKING:
-    from prefect_sqlalchemy.credentials import SQLAlchemyCredentials
     from sqlalchemy.engine.cursor import CursorResult
+
+    from prefect_sqlalchemy.credentials import SQLAlchemyCredentials
 
 
 async def _execute(
@@ -36,7 +39,7 @@ async def sqlalchemy_execute(
         query: The query to execute against the database.
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
-    
+
     Examples:
         Create table named customers and insert values.
         ```python
@@ -88,7 +91,7 @@ async def sqlalchemy_query(
 
     Returns:
         The fetched results.
-    
+
     Examples:
         Query postgres table with the ID value parameterized.
         ```python

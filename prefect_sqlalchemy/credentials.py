@@ -1,6 +1,7 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
+
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -29,6 +30,7 @@ class SQLAlchemyCredentials:
             directly to the DBAPI's connect() method as
             additional keyword arguments.
     """
+
     driver: str
     user: str
     password: str
@@ -39,15 +41,15 @@ class SQLAlchemyCredentials:
     connect_args: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
+        """
+        Initializes the engine.
+        """
         async_drivers = {
             "postgresql": "postgresql+asyncpg",
             "sqlite": "sqlite+aiosqlite",
-            "mysql": "mysql+aiomysql"
+            "mysql": "mysql+aiomysql",
         }  # replace with async drivers
-        drivername = async_drivers.get(
-            self.driver.lower(),
-            self.driver
-        )
+        drivername = async_drivers.get(self.driver.lower(), self.driver)
 
         url = URL.create(
             drivername=drivername,
@@ -56,7 +58,7 @@ class SQLAlchemyCredentials:
             database=self.database,
             host=self.host,
             port=self.port,
-            query=self.query
+            query=self.query,
         )
         connect_args = self.connect_args or {}
         self.engine = create_async_engine(url, connect_args=connect_args)
@@ -90,4 +92,7 @@ class SQLAlchemyCredentials:
         return self.engine.connect()
 
     async def dispose(self):
+        """
+        Dispose the engine.
+        """
         await self.engine.dispose()
