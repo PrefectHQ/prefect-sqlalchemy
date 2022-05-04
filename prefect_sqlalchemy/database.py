@@ -8,12 +8,12 @@ from sqlalchemy.sql import text
 if TYPE_CHECKING:
     from sqlalchemy.engine.cursor import CursorResult
 
-    from prefect_sqlalchemy.credentials import SQLAlchemyCredentials
+    from prefect_sqlalchemy.credentials import DatabaseCredentials
 
 
 async def _execute(
     query: str,
-    sqlalchemy_credentials: "SQLAlchemyCredentials",
+    sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
 ) -> "CursorResult":
     """
@@ -27,8 +27,8 @@ async def _execute(
 
 @task
 async def sqlalchemy_execute(
-    query: str,
-    sqlalchemy_credentials: "SQLAlchemyCredentials",
+    statement: str,
+    sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
 ):
     """
@@ -36,20 +36,20 @@ async def sqlalchemy_execute(
     since this task does not return any objects.
 
     Args:
-        query: The query to execute against the database.
+        statement: The statement to execute against the database.
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
 
     Examples:
         Create table named customers and insert values.
         ```python
-        from prefect_sqlalchemy import SQLAlchemyCredentials
+        from prefect_sqlalchemy import DatabaseCredentials
         from prefect_sqlalchemy.database import sqlalchemy_execute
         from prefect import flow
 
         @flow
         def sqlalchemy_execute_flow():
-            sqlalchemy_credentials = SQLAlchemyCredentials(
+            sqlalchemy_credentials = DatabaseCredentials(
                 driver="postgresql",
                 user="prefect",
                 password="prefect_password",
@@ -70,13 +70,13 @@ async def sqlalchemy_execute(
     """
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
-    await _execute(query, sqlalchemy_credentials, params=params)
+    await _execute(statement, sqlalchemy_credentials, params=params)
 
 
 @task
 async def sqlalchemy_query(
     query: str,
-    sqlalchemy_credentials: "SQLAlchemyCredentials",
+    sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
     limit: Optional[int] = None,
 ) -> List[Tuple[Any]]:
@@ -95,13 +95,13 @@ async def sqlalchemy_query(
     Examples:
         Query postgres table with the ID value parameterized.
         ```python
-        from prefect_sqlalchemy import SQLAlchemyCredentials
+        from prefect_sqlalchemy import DatabaseCredentials
         from prefect_sqlalchemy.database import sqlalchemy_query
         from prefect import flow
 
         @flow
         def sqlalchemy_query_flow():
-            sqlalchemy_credentials = SQLAlchemyCredentials(
+            sqlalchemy_credentials = DatabaseCredentials(
                 driver="postgresql",
                 user="prefect",
                 password="prefect_password",

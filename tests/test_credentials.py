@@ -1,10 +1,10 @@
 from sqlalchemy.ext.asyncio.engine import AsyncConnection
 
-from prefect_sqlalchemy.credentials import SQLAlchemyCredentials
+from prefect_sqlalchemy.credentials import DatabaseCredentials
 
 
 def test_sqlalchemy_credentials_get_connection():
-    sqlalchemy_credentials = SQLAlchemyCredentials(
+    sqlalchemy_credentials = DatabaseCredentials(
         "postgresql", "user", "password", "database"
     )
     expected = "postgresql+asyncpg://user:***@localhost:5432/database"

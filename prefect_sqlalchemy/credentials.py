@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class SQLAlchemyCredentials:
+class DatabaseCredentials:
     """
     Dataclass used to manage authentication with SQLAlchemy.
     The engine should be disposed manually at the end of the flow.
@@ -74,11 +74,11 @@ class SQLAlchemyCredentials:
         Examples:
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import SQLAlchemyCredentials
+            from prefect_sqlalchemy import DatabaseCredentials
 
             @flow
             def sqlalchemy_credentials_flow():
-                sqlalchemy_credentials = SQLAlchemyCredentials(
+                sqlalchemy_credentials = DatabaseCredentials(
                     drivername="postgresql+asyncpg",
                     username="prefect",
                     password="prefect_password",
