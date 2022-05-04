@@ -32,7 +32,7 @@ async def sqlalchemy_execute(
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
 ):
     """
-    Executes a SQL query; useful for creating tables and inserting rows
+    Executes a SQL DDL or DML statement; useful for creating tables and inserting rows
     since this task does not return any objects.
 
     Args:
@@ -107,7 +107,6 @@ async def sqlalchemy_query(
                 password="prefect_password",
                 database="postgres",
             )
-
             return result
 
         sqlalchemy_query_flow()
