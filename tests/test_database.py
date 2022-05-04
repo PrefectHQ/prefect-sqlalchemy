@@ -15,7 +15,15 @@ class SQLAlchemyConnectionMock:
 
     async def execute(self, query, params):
         cursor_result = MagicMock()
-        cursor_result.fetchall.side_effect = [(query, params)]
+        cursor_result.fetchall.side_effect = lambda: [
+            (query, params),
+        ]
+        cursor_result.fetchmany.side_effect = (
+            lambda size: [
+                (query, params),
+            ]
+            * size
+        )
         return cursor_result
 
     async def commit(self):
@@ -29,19 +37,22 @@ def sqlalchemy_credentials():
     return sqlalchemy_credentials_mock
 
 
-def test_sqlalchemy_query(sqlalchemy_credentials):
+@pytest.mark.parametrize("limit", [None, 3])
+def test_sqlalchemy_query(limit, sqlalchemy_credentials):
     @flow
     def test_flow():
         result = sqlalchemy_query(
-            "query",
-            sqlalchemy_credentials,
-            params=("param",),
+            "query", sqlalchemy_credentials, params=("param",), limit=limit
         )
         return result
 
     result = test_flow().result().result()
-    assert str(result[0]) == "query"
-    assert result[1] == ("param",)
+    assert str(result[0][0]) == "query"
+    assert result[0][1] == ("param",)
+    if limit is None:
+        assert len(result) == 1
+    else:
+        assert len(result) == limit
 
 
 def test_sqlalchemy_execute(sqlalchemy_credentials):
