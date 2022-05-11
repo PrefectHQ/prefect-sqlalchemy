@@ -1,13 +1,26 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import create_async_engine
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
+
+
+class AsyncDriver(Enum):
+    """
+    Server used to send email.
+    """
+
+    POSTGRESQL_ASYNCPG = "postgresql+asyncpg"
+    POSTGRESQL_PSYCOPG = "postgresql+psycopg"
+    SQLITE_AIOSQLITE = "sqlite+aiosqlite"
+    MYSQL_ASYNCMY = "mysql+asyncmy"
+    MYSQL_AIOMYSQL = "mysql+aiomysql"
 
 
 @dataclass
@@ -31,7 +44,7 @@ class DatabaseCredentials:
             additional keyword arguments.
     """
 
-    driver: str
+    driver: Union[AsyncDriver, str]
     user: str
     password: str
     database: str
@@ -44,12 +57,10 @@ class DatabaseCredentials:
         """
         Initializes the engine.
         """
-        async_drivers = {
-            "postgresql": "postgresql+asyncpg",
-            "sqlite": "sqlite+aiosqlite",
-            "mysql": "mysql+aiomysql",
-        }  # replace with async drivers
-        drivername = async_drivers.get(self.driver.lower(), self.driver)
+        if isinstance(self.driver, AsyncDriver):
+            drivername = self.driver.value
+        else:  # if they specify a novel async driver
+            drivername = self.driver
 
         url = URL.create(
             drivername=drivername,
@@ -74,12 +85,12 @@ class DatabaseCredentials:
         Examples:
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDrivers
 
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
-                    drivername="postgresql+asyncpg",
+                    drivername=AsyncDrivers.POSTGRESQL_ASYNCPG,
                     username="prefect",
                     password="prefect_password",
                     database="postgres"
