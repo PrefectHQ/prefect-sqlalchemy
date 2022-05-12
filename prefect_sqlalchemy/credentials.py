@@ -23,6 +23,18 @@ class AsyncDriver(Enum):
     MYSQL_AIOMYSQL = "mysql+aiomysql"
 
 
+class SyncDriver(Enum):
+    """
+    Known dialects with their corresponding sync drivers.
+    """
+
+    POSTGRESQL_PSYCOPG2 = "postgresql+psycopg2"
+    POSTGRESQL_PG8000 = "postgresql+pg8000"
+    POSTGRESQL_PSYCOPG2CFFI = "postgresql+psycopg2cffi"
+    POSTGRESQL_PYPOSTGRESQL = "postgresql+pypostgresql"
+    POSTGRESQL_PYGRESQL = "postgresql+pygresql"
+
+
 @dataclass
 class DatabaseCredentials:
     """
@@ -85,12 +97,12 @@ class DatabaseCredentials:
         Examples:
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials, AsyncDrivers
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
 
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
-                    drivername=AsyncDrivers.POSTGRESQL_ASYNCPG,
+                    driver=AsyncDriver.POSTGRESQL_PSYCOPG,
                     username="prefect",
                     password="prefect_password",
                     database="postgres"
