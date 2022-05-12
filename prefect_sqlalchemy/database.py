@@ -43,14 +43,14 @@ async def sqlalchemy_execute(
     Examples:
         Create table named customers and insert values.
         ```python
-        from prefect_sqlalchemy import DatabaseCredentials
+        from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
         from prefect_sqlalchemy.database import sqlalchemy_execute
         from prefect import flow
 
         @flow
         def sqlalchemy_execute_flow():
             sqlalchemy_credentials = DatabaseCredentials(
-                driver="postgresql",
+                driver=AsyncDriver.POSTGRESQL_ASYNCPG,
                 user="prefect",
                 password="prefect_password",
                 database="postgres",
@@ -95,17 +95,22 @@ async def sqlalchemy_query(
     Examples:
         Query postgres table with the ID value parameterized.
         ```python
-        from prefect_sqlalchemy import DatabaseCredentials
+        from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
         from prefect_sqlalchemy.database import sqlalchemy_query
         from prefect import flow
 
         @flow
         def sqlalchemy_query_flow():
             sqlalchemy_credentials = DatabaseCredentials(
-                driver="postgresql",
+                driver=AsyncDriver.POSTGRESQL_ASYNCPG,
                 user="prefect",
                 password="prefect_password",
                 database="postgres",
+            )
+            result = sqlalchemy_query(
+                "SELECT * FROM customers WHERE name = :name;",
+                sqlalchemy_credentials,
+                params={"name": "Marvin"},
             )
             return result
 
