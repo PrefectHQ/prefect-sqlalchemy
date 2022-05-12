@@ -85,12 +85,12 @@ class DatabaseCredentials:
         Examples:
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials, AsyncDrivers
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
 
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
-                    drivername=AsyncDrivers.POSTGRESQL_ASYNCPG,
+                    drivername=AsyncDriver.POSTGRESQL_ASYNCPG,
                     username="prefect",
                     password="prefect_password",
                     database="postgres"
