@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 class AsyncDriver(Enum):
     """
-    Server used to send email.
+    Known dialects with their corresponding async drivers.
     """
 
     POSTGRESQL_ASYNCPG = "postgresql+asyncpg"
