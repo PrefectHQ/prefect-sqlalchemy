@@ -10,6 +10,7 @@ from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
 
 from prefect.logging import get_run_logger
@@ -123,15 +124,16 @@ class DatabaseCredentials:
             f"using the connection string: {url_repr}."
         )
 
-    def get_connection(self) -> "AsyncConnection":
+    def get_connection(self) -> Union["Connection", "AsyncConnection"]:
         """
         Returns an authenticated connection that can be
-        used to query from Snowflake databases.
+        used to query from databases.
 
         Returns:
-            The authenticated SQLAlchemy AsyncConnection.
+            The authenticated SQLAlchemy Connection / AsyncConnection.
 
         Examples:
+            Create an asynchronous connection.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
