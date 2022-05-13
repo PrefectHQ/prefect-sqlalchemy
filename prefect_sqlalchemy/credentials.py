@@ -17,7 +17,6 @@ class AsyncDriver(Enum):
     """
 
     POSTGRESQL_ASYNCPG = "postgresql+asyncpg"
-    POSTGRESQL_PSYCOPG = "postgresql+psycopg"
     SQLITE_AIOSQLITE = "sqlite+aiosqlite"
     MYSQL_ASYNCMY = "mysql+asyncmy"
     MYSQL_AIOMYSQL = "mysql+aiomysql"
@@ -102,12 +101,12 @@ class DatabaseCredentials:
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
-                    driver=AsyncDriver.POSTGRESQL_PSYCOPG,
-                    username="prefect",
+                    driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+                    user="prefect",
                     password="prefect_password",
                     database="postgres"
                 )
-                return sqlalchemy_credentials
+                print(sqlalchemy_credentials.get_connection())
 
             sqlalchemy_credentials_flow()
             ```
