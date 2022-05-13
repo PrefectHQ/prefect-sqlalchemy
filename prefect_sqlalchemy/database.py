@@ -19,9 +19,14 @@ async def _execute(
     """
     Executes a SQL query.
     """
-    async with sqlalchemy_credentials.get_connection() as connection:
-        result = await connection.execute(text(query), params)
-        await connection.commit()
+    if sqlalchemy_credentials.is_async:
+        async with sqlalchemy_credentials.get_connection() as connection:
+            result = await connection.execute(text(query), params)
+            await connection.commit()
+    else:
+        with sqlalchemy_credentials.get_connection() as connection:
+            result = connection.execute(text(query), params)
+            # commit is not available
     return result
 
 

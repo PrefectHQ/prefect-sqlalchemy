@@ -4,11 +4,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
+from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.ext.asyncio import create_async_engine
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
+
+from prefect.logging import get_run_logger
 
 
 class AsyncDriver(Enum):
@@ -17,7 +21,9 @@ class AsyncDriver(Enum):
     """
 
     POSTGRESQL_ASYNCPG = "postgresql+asyncpg"
+
     SQLITE_AIOSQLITE = "sqlite+aiosqlite"
+
     MYSQL_ASYNCMY = "mysql+asyncmy"
     MYSQL_AIOMYSQL = "mysql+aiomysql"
 
@@ -32,6 +38,22 @@ class SyncDriver(Enum):
     POSTGRESQL_PSYCOPG2CFFI = "postgresql+psycopg2cffi"
     POSTGRESQL_PYPOSTGRESQL = "postgresql+pypostgresql"
     POSTGRESQL_PYGRESQL = "postgresql+pygresql"
+
+    MYSQL_MYSQLDB = "mysql+mysqldb"
+    MYSQL_PYMYSQL = "mysql+pymysql"
+    MYSQL_MYSQLCONNECTOR = "mysql+mysqlconnector"
+    MYSQL_CYMYSQL = "mysql+cymysql"
+    MYSQL_OURSQL = "mysql+oursql"
+    MYSQL_PYODBC = "mysql+pyodbc"
+
+    SQLITE_PYSQLITE = "sqlite+pysqlite"
+    SQLITE_PYSQLCIPHER = "sqlite+pysqlcipher"
+
+    ORACLE_CX_ORACLE = "oracle+cx_oracle"
+
+    MSSQL_PYODBC = "mssql+pyodbc"
+    MSSQL_MXODBC = "mssql+mxodbc"
+    MSSQL_PYMSSQL = "mssql+pymssql"
 
 
 @dataclass
@@ -68,7 +90,8 @@ class DatabaseCredentials:
         """
         Initializes the engine.
         """
-        if isinstance(self.driver, AsyncDriver):
+        logger = get_run_logger()
+        if isinstance(self.driver, Enum):
             drivername = self.driver.value
         else:  # if they specify a novel async driver
             drivername = self.driver
@@ -83,7 +106,22 @@ class DatabaseCredentials:
             query=self.query,
         )
         connect_args = self.connect_args or {}
-        self.engine = create_async_engine(url, connect_args=connect_args)
+        try:
+            self.engine = create_async_engine(url, connect_args=connect_args)
+            self.is_async = True
+        except InvalidRequestError as exc:
+            if "is not async" in str(exc):
+                self.engine = create_engine(url, connect_args=connect_args)
+                self.is_async = False
+            else:
+                raise exc
+
+        engine_type = "ASYNCHRONOUS" if self.is_async else "SYNCHRONOUS"
+        url_repr = url.render_as_string()  # hides the password
+        logger.info(
+            f"Created a(n) {engine_type} engine successfully "
+            f"using the connection string: {url_repr}."
+        )
 
     def get_connection(self) -> "AsyncConnection":
         """
