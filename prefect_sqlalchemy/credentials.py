@@ -141,7 +141,7 @@ class DatabaseCredentials:
             The authenticated SQLAlchemy Connection / AsyncConnection.
 
         Examples:
-            Create an asynchronous connection to PostgreSQL using URL params.
+            Create an asynchronous engine to PostgreSQL using URL params.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
@@ -154,12 +154,12 @@ class DatabaseCredentials:
                     password="prefect_password",
                     database="postgres"
                 )
-                print(sqlalchemy_credentials.get_connection())
+                print(sqlalchemy_credentials.get_engine())
 
             sqlalchemy_credentials_flow()
             ```
 
-            Create a synchronous connection to Snowflake using the `url` kwarg.
+            Create a synchronous engine to Snowflake using the `url` kwarg.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
@@ -172,7 +172,7 @@ class DatabaseCredentials:
                     "?warehouse=<warehouse_name>"
                 )
                 sqlalchemy_credentials = DatabaseCredentials(url=url)
-                print(sqlalchemy_credentials.get_connection())
+                print(sqlalchemy_credentials.get_engine())
 
             sqlalchemy_credentials_flow()
             ```
