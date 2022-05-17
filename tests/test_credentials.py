@@ -81,11 +81,11 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
     test_flow().result()
 
 
-@pytest.mark.parametrize("url_type", [str, URL])
+@pytest.mark.parametrize("url_type", ["string", "URL"])
 def test_sqlalchemy_credentials_get_engine_url(url_type):
     @flow
     def test_flow():
-        if isinstance(url_type, str):
+        if url_type == "string":
             url = "postgresql://username:password@account/database"
         else:
             url = URL.create(

@@ -128,20 +128,26 @@ def test_sqlalchemy_query_sync(limit, sqlalchemy_credentials_sync):
         assert len(result) == limit
 
 
-async def test_sqlalchemy_execute_async(sqlalchemy_credentials_async):
+@pytest.mark.parametrize("dispose", [True, False])
+async def test_sqlalchemy_execute_async(sqlalchemy_credentials_async, dispose):
     @flow
     async def test_flow():
-        result = await sqlalchemy_execute("statement", sqlalchemy_credentials_async)
+        result = await sqlalchemy_execute(
+            "statement", sqlalchemy_credentials_async, dispose=dispose
+        )
         return result
 
     result = ((await test_flow()).result()).result()
     assert result is None
 
 
-def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
+@pytest.mark.parametrize("dispose", [True, False])
+def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync, dispose):
     @flow
     def test_flow():
-        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
+        result = sqlalchemy_execute(
+            "statement", sqlalchemy_credentials_sync, dispose=dispose
+        )
         return result
 
     result = test_flow().result().result()
