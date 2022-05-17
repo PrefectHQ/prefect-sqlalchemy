@@ -15,18 +15,28 @@ async def _execute(
     query: str,
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
+    dispose: bool = True,
 ) -> "CursorResult":
     """
     Executes a SQL query.
     """
-    if sqlalchemy_credentials.is_async:
-        async with sqlalchemy_credentials.get_connection() as connection:
-            result = await connection.execute(text(query), params)
-            await connection.commit()
-    else:
-        with sqlalchemy_credentials.get_connection() as connection:
-            result = connection.execute(text(query), params)
-            # commit is not available
+    engine = sqlalchemy_credentials.get_engine()
+    try:
+        execute_args = (text(query), params)
+        if sqlalchemy_credentials._async_supported:
+            async with engine.connect() as connection:
+                result = await connection.execute(*execute_args)
+                await connection.commit()
+        else:
+            with engine.connect() as connection:
+                result = connection.execute(*execute_args)
+                # commit is not available
+    finally:
+        if dispose:
+            if sqlalchemy_credentials._async_supported:
+                await engine.dispose()
+            else:
+                engine.dispose()
     return result
 
 
@@ -35,6 +45,7 @@ async def sqlalchemy_execute(
     statement: str,
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
+    dispose: bool = True,
 ):
     """
     Executes a SQL DDL or DML statement; useful for creating tables and inserting rows
@@ -44,6 +55,7 @@ async def sqlalchemy_execute(
         statement: The statement to execute against the database.
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
+        dispose: Whether to dispose the engine upon completion.
 
     Examples:
         Create table named customers and insert values.
@@ -56,7 +68,7 @@ async def sqlalchemy_execute(
         def sqlalchemy_execute_flow():
             sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                user="prefect",
+                username="prefect",
                 password="prefect_password",
                 database="postgres",
             )
@@ -75,7 +87,7 @@ async def sqlalchemy_execute(
     """
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
-    await _execute(statement, sqlalchemy_credentials, params=params)
+    await _execute(statement, sqlalchemy_credentials, params=params, dispose=dispose)
 
 
 @task
@@ -84,6 +96,7 @@ async def sqlalchemy_query(
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
     limit: Optional[int] = None,
+    dispose: bool = True,
 ) -> List[Tuple[Any]]:
     """
     Executes a SQL query; useful for querying data from existing tables.
@@ -93,6 +106,7 @@ async def sqlalchemy_query(
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
         limit: The number of rows to fetch.
+        dispose: Whether to dispose the engine upon completion.
 
     Returns:
         The fetched results.
@@ -108,7 +122,7 @@ async def sqlalchemy_query(
         def sqlalchemy_query_flow():
             sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                user="prefect",
+                username="prefect",
                 password="prefect_password",
                 database="postgres",
             )
@@ -122,7 +136,9 @@ async def sqlalchemy_query(
         sqlalchemy_query_flow()
         ```
     """
-    result = await _execute(query, sqlalchemy_credentials, params=params)
+    result = await _execute(
+        query, sqlalchemy_credentials, params=params, dispose=dispose
+    )
     if limit is None:
         return result.fetchall()
     else:

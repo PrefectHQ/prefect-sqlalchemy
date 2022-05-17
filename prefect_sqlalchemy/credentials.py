@@ -4,16 +4,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import InvalidRequestError
+from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
-
-from prefect.logging import get_run_logger
 
 
 class AsyncDriver(Enum):
@@ -66,65 +64,75 @@ class DatabaseCredentials:
     Args:
         driver: The driver name, e.g. "postgresql+asyncpg"
         database: The name of the database to use.
-        user: The user name used to authenticate.
+        username: The user name used to authenticate.
         password: The password used to authenticate.
         host: The host address of the database.
         port: The port to connect to the database.
         query: A dictionary of string keys to string values to be passed to
             the dialect and/or the DBAPI upon connect. To specify non-string
             parameters to a Python DBAPI directly, use connect_args.
-        connect_args: The options which will be passed
-            directly to the DBAPI's connect() method as
-            additional keyword arguments.
+        url: Manually create and provide a URL to create the engine,
+            this is useful for external dialects, e.g. Snowflake, because some
+            of the params, such as "warehouse", is not directly supported in
+            the vanilla `sqlalchemy.engine.URL.create` method; do not provide
+            this alongside with other URL params as it will raise a `ValueError`.
+        connect_args: The options which will be passed directly to the
+            DBAPI's connect() method as additional keyword arguments.
     """
 
-    driver: Union[AsyncDriver, str]
-    user: str
-    password: str
-    database: str
-    host: Optional[str] = "localhost"
-    port: Optional[str] = 5432
+    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    database: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[str] = None
     query: Optional[Dict[str, str]] = None
+    url: Optional[Union[URL, str]] = None
     connect_args: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
         """
         Initializes the engine.
         """
-        logger = get_run_logger()
-        if isinstance(self.driver, Enum):
+        if isinstance(self.driver, AsyncDriver):
             drivername = self.driver.value
-        else:  # if they specify a novel async driver
+            self._async_supported = True
+        elif isinstance(self.driver, SyncDriver):
+            drivername = self.driver.value
+            self._async_supported = False
+        else:
             drivername = self.driver
+            self._async_supported = drivername in AsyncDriver._value2member_map_
 
-        url = URL.create(
+        url_params = dict(
             drivername=drivername,
-            username=self.user,
+            username=self.username,
             password=self.password,
             database=self.database,
             host=self.host,
             port=self.port,
             query=self.query,
         )
-        connect_args = self.connect_args or {}
-        try:
-            self.engine = create_async_engine(url, connect_args=connect_args)
-            self.is_async = True
-        except InvalidRequestError as exc:
-            if "is not async" in str(exc):
-                self.engine = create_engine(url, connect_args=connect_args)
-                self.is_async = False
-            else:
-                raise exc
+        if not self.url:
+            required_url_keys = ("drivername", "username", "database")
+            if not all(url_params[key] for key in required_url_keys):
+                raise ValueError(
+                    f"If the `url` is not provided, "
+                    f"all of these URL params are required: "
+                    f"{required_url_keys}"
+                )
+            self.url = URL.create(**url_params)  # from params
+        else:
+            if any(val for val in url_params.values()):
+                raise ValueError(
+                    f"The `url` should not be provided "
+                    f"alongside any of these URL params: "
+                    f"{url_params.keys()}"
+                )
+            if not isinstance(self.url, URL):
+                self.url = make_url(self.url)  # from string
 
-        engine_type = "ASYNCHRONOUS" if self.is_async else "SYNCHRONOUS"
-        url_repr = url.render_as_string()  # hides the password
-        logger.info(
-            f"Created a(n) {engine_type} engine successfully "
-            f"using the connection string: {url_repr}."
-        )
-
-    def get_connection(self) -> Union["Connection", "AsyncConnection"]:
+    def get_engine(self) -> Union["Connection", "AsyncConnection"]:
         """
         Returns an authenticated connection that can be
         used to query from databases.
@@ -133,7 +141,7 @@ class DatabaseCredentials:
             The authenticated SQLAlchemy Connection / AsyncConnection.
 
         Examples:
-            Create an asynchronous connection.
+            Create an asynchronous connection to PostgreSQL using URL params.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
@@ -142,7 +150,7 @@ class DatabaseCredentials:
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
                     driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                    user="prefect",
+                    username="prefect",
                     password="prefect_password",
                     database="postgres"
                 )
@@ -150,11 +158,30 @@ class DatabaseCredentials:
 
             sqlalchemy_credentials_flow()
             ```
-        """
-        return self.engine.connect()
 
-    async def dispose(self):
+            Create a synchronous connection to Snowflake using the `url` kwarg.
+            ```python
+            from prefect import flow
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+
+            @flow
+            def sqlalchemy_credentials_flow():
+                url = (
+                    "snowflake://<user_login_name>:<password>"
+                    "@<account_identifier>/<database_name>"
+                    "?warehouse=<warehouse_name>"
+                )
+                sqlalchemy_credentials = DatabaseCredentials(url=url)
+                print(sqlalchemy_credentials.get_connection())
+
+            sqlalchemy_credentials_flow()
+            ```
         """
-        Dispose the engine.
-        """
-        await self.engine.dispose()
+        engine_kwargs = dict(
+            url=self.url, connect_args=self.connect_args or {}, poolclass=NullPool
+        )
+        if self._async_supported:
+            engine = create_async_engine(**engine_kwargs)
+        else:
+            engine = create_engine(**engine_kwargs)
+        return engine

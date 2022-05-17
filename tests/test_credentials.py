@@ -1,27 +1,60 @@
 import pytest
 from prefect import flow
-from sqlalchemy.engine import Engine, create_mock_engine
-from sqlalchemy.engine.mock import MockConnection
-from sqlalchemy.ext.asyncio.engine import AsyncConnection, AsyncEngine
+from sqlalchemy.engine import URL, Engine
+from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from prefect_sqlalchemy.credentials import AsyncDriver, DatabaseCredentials, SyncDriver
 
 
 @pytest.mark.parametrize(
+    "url_param", ["driver", "username", "password", "database", "host", "port", "query"]
+)
+def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
+    @flow
+    def test_flow():
+        url_params = {url_param: url_param}
+        with pytest.raises(
+            ValueError, match="The `url` should not be provided alongside"
+        ):
+            DatabaseCredentials(url="url", **url_params)
+
+    test_flow().result()
+
+
+@pytest.mark.parametrize("url_param", ["driver", "username", "database"])
+def test_sqlalchemy_credentials_post_init_url_param_missing(url_param):
+    @flow
+    def test_flow():
+        url_params = {
+            "driver": "driver",
+            "username": "username",
+            "database": "database",
+        }
+        url_params.pop(url_param)
+        with pytest.raises(ValueError, match="If the `url` is not provided"):
+            DatabaseCredentials(**url_params)
+
+    test_flow().result()
+
+
+@pytest.mark.parametrize(
     "driver", [AsyncDriver.POSTGRESQL_ASYNCPG, "postgresql+asyncpg"]
 )
-def test_sqlalchemy_credentials_get_connection_async(monkeypatch, driver):
+def test_sqlalchemy_credentials_get_engine_async(driver):
     @flow
     def test_flow():
         sqlalchemy_credentials = DatabaseCredentials(
-            driver, "user", "password", "database"
+            driver, "user", "password", "database", host="localhost", port=5432
         )
-        expected = "postgresql+asyncpg://user:***@localhost:5432/database"
-        assert sqlalchemy_credentials.engine.url.render_as_string() == expected
-        assert sqlalchemy_credentials.is_async is True
-        assert isinstance(sqlalchemy_credentials.engine, AsyncEngine)
-        connection = sqlalchemy_credentials.get_connection()
-        assert isinstance(connection, AsyncConnection)
+        assert sqlalchemy_credentials._async_supported is True
+
+        expected_url = "postgresql+asyncpg://user:***@localhost:5432/database"
+        assert repr(sqlalchemy_credentials.url) == expected_url
+        assert isinstance(sqlalchemy_credentials.url, URL)
+
+        engine = sqlalchemy_credentials.get_engine()
+        assert engine.url.render_as_string() == expected_url
+        assert isinstance(engine, AsyncEngine)
 
     test_flow().result()
 
@@ -29,23 +62,49 @@ def test_sqlalchemy_credentials_get_connection_async(monkeypatch, driver):
 @pytest.mark.parametrize(
     "driver", [SyncDriver.POSTGRESQL_PSYCOPG2, "postgresql+psycopg2"]
 )
-def test_sqlalchemy_credentials_get_connection_sync(driver):
+def test_sqlalchemy_credentials_get_engine_sync(driver):
     @flow
     def test_flow():
         sqlalchemy_credentials = DatabaseCredentials(
-            driver, "user", "password", "database"
+            driver, "user", "password", "database", host="localhost", port=5432
         )
-        expected = "postgresql+psycopg2://user:***@localhost:5432/database"
-        assert sqlalchemy_credentials.engine.url.render_as_string() == expected
-        assert sqlalchemy_credentials.is_async is False
-        # first check if it's the proper engine
-        assert isinstance(sqlalchemy_credentials.engine, Engine)
-        # can't use monkeypatch or else affects Orion as well
-        # so manually replace it with a mock engine
-        sqlalchemy_credentials.engine = create_mock_engine(
-            sqlalchemy_credentials.engine.url, ""
-        )
-        connection = sqlalchemy_credentials.get_connection()
-        assert isinstance(connection, MockConnection)
+        assert sqlalchemy_credentials._async_supported is False
+
+        expected_url = "postgresql+psycopg2://user:***@localhost:5432/database"
+        assert repr(sqlalchemy_credentials.url) == expected_url
+        assert isinstance(sqlalchemy_credentials.url, URL)
+
+        engine = sqlalchemy_credentials.get_engine()
+        assert engine.url.render_as_string() == expected_url
+        assert isinstance(engine, Engine)
+
+    test_flow().result()
+
+
+@pytest.mark.parametrize("url_type", [str, URL])
+def test_sqlalchemy_credentials_get_engine_url(url_type):
+    @flow
+    def test_flow():
+        if isinstance(url_type, str):
+            url = "snowflake://username:password@account/database?warehouse=COMPUTE_WH"
+        else:
+            url = URL(
+                "snowflake",
+                "username",
+                "password",
+                host="account",
+                database="database",
+                query={"warehouse": "COMPUTE_WH"},
+            )
+        sqlalchemy_credentials = DatabaseCredentials(url=url)
+        assert sqlalchemy_credentials._async_supported is False
+
+        expected_url = "snowflake://username:***@account/database?warehouse=COMPUTE_WH"
+        assert repr(sqlalchemy_credentials.url) == expected_url
+        assert isinstance(sqlalchemy_credentials.url, URL)
+
+        engine = sqlalchemy_credentials.get_engine()
+        assert engine.url.render_as_string() == expected_url
+        assert isinstance(engine, Engine)
 
     test_flow().result()
