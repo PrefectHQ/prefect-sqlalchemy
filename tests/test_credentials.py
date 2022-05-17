@@ -86,10 +86,10 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
     @flow
     def test_flow():
         if isinstance(url_type, str):
-            url = "snowflake://username:password@account/database?warehouse=COMPUTE_WH"
+            url = "postgres://username:password@account/database?warehouse=COMPUTE_WH"
         else:
             url = URL(
-                "snowflake",
+                "postgres",
                 "username",
                 "password",
                 host="account",
@@ -99,7 +99,7 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
         sqlalchemy_credentials = DatabaseCredentials(url=url)
         assert sqlalchemy_credentials._async_supported is False
 
-        expected_url = "snowflake://username:***@account/database?warehouse=COMPUTE_WH"
+        expected_url = "postgres://username:***@account/database?warehouse=COMPUTE_WH"
         assert repr(sqlalchemy_credentials.url) == expected_url
         assert isinstance(sqlalchemy_credentials.url, URL)
 
