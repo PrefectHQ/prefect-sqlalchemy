@@ -86,20 +86,19 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
     @flow
     def test_flow():
         if isinstance(url_type, str):
-            url = "postgres://username:password@account/database?warehouse=COMPUTE_WH"
+            url = "postgresql://username:password@account/database"
         else:
-            url = URL(
-                "postgres",
+            url = URL.create(
+                "postgresql",
                 "username",
                 "password",
                 host="account",
                 database="database",
-                query={"warehouse": "COMPUTE_WH"},
             )
         sqlalchemy_credentials = DatabaseCredentials(url=url)
         assert sqlalchemy_credentials._async_supported is False
 
-        expected_url = "postgres://username:***@account/database?warehouse=COMPUTE_WH"
+        expected_url = "postgresql://username:***@account/database"
         assert repr(sqlalchemy_credentials.url) == expected_url
         assert isinstance(sqlalchemy_credentials.url, URL)
 
