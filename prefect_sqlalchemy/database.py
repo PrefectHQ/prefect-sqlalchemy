@@ -15,7 +15,6 @@ async def _execute(
     query: str,
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
-    dispose: bool = True,
 ) -> "CursorResult":
     """
     Executes a SQL query.
@@ -32,11 +31,10 @@ async def _execute(
                 result = connection.execute(*execute_args)
                 # commit is not available
     finally:
-        if dispose:
-            if sqlalchemy_credentials._async_supported:
-                await engine.dispose()
-            else:
-                engine.dispose()
+        if sqlalchemy_credentials._async_supported:
+            await engine.dispose()
+        else:
+            engine.dispose()
     return result
 
 
@@ -45,7 +43,6 @@ async def sqlalchemy_execute(
     statement: str,
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
-    dispose: bool = True,
 ):
     """
     Executes a SQL DDL or DML statement; useful for creating tables and inserting rows
@@ -87,7 +84,7 @@ async def sqlalchemy_execute(
     """
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
-    await _execute(statement, sqlalchemy_credentials, params=params, dispose=dispose)
+    await _execute(statement, sqlalchemy_credentials, params=params)
 
 
 @task
@@ -96,7 +93,6 @@ async def sqlalchemy_query(
     sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
     limit: Optional[int] = None,
-    dispose: bool = True,
 ) -> List[Tuple[Any]]:
     """
     Executes a SQL query; useful for querying data from existing tables.
@@ -106,7 +102,6 @@ async def sqlalchemy_query(
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
         limit: The number of rows to fetch.
-        dispose: Whether to dispose the engine upon completion.
 
     Returns:
         The fetched results.
@@ -136,9 +131,7 @@ async def sqlalchemy_query(
         sqlalchemy_query_flow()
         ```
     """
-    result = await _execute(
-        query, sqlalchemy_credentials, params=params, dispose=dispose
-    )
+    result = await _execute(query, sqlalchemy_credentials, params=params)
     if limit is None:
         return result.fetchall()
     else:

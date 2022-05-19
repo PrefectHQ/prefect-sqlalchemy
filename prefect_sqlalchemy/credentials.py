@@ -59,7 +59,6 @@ class SyncDriver(Enum):
 class DatabaseCredentials:
     """
     Dataclass used to manage authentication with SQLAlchemy.
-    The engine should be disposed manually at the end of the flow.
 
     Args:
         driver: The driver name, e.g. "postgresql+asyncpg"
@@ -134,7 +133,7 @@ class DatabaseCredentials:
 
     def get_engine(self) -> Union["Connection", "AsyncConnection"]:
         """
-        Returns an authenticated connection that can be
+        Returns an authenticated engine that can be
         used to query from databases.
 
         Returns:
