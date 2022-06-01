@@ -52,7 +52,6 @@ async def sqlalchemy_execute(
         statement: The statement to execute against the database.
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
-        dispose: Whether to dispose the engine upon completion.
 
     Examples:
         Create table named customers and insert values.
