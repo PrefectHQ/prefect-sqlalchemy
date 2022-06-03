@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.1.0
 
-Released on ????? ?th, 20??.
+Released on June 3nd, 2022.
 
 ### Added
 
-- `task_name` task - [#1](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/1)
+- `sqlalchemy_execute` and `sqlalchemy_query` tasks - [#3](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/3)
+- Support for synchronous and external drivers - [#5](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/5)
