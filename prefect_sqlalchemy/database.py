@@ -19,9 +19,22 @@ async def _execute(
     """
     Executes a SQL query.
     """
-    async with sqlalchemy_credentials.get_connection() as connection:
-        result = await connection.execute(text(query), params)
-        await connection.commit()
+    engine = sqlalchemy_credentials.get_engine()
+    try:
+        execute_args = (text(query), params)
+        if sqlalchemy_credentials._async_supported:
+            async with engine.connect() as connection:
+                result = await connection.execute(*execute_args)
+                await connection.commit()
+        else:
+            with engine.connect() as connection:
+                result = connection.execute(*execute_args)
+                # commit is not available
+    finally:
+        if sqlalchemy_credentials._async_supported:
+            await engine.dispose()
+        else:
+            engine.dispose()
     return result
 
 
@@ -51,7 +64,7 @@ async def sqlalchemy_execute(
         def sqlalchemy_execute_flow():
             sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                user="prefect",
+                username="prefect",
                 password="prefect_password",
                 database="postgres",
             )
@@ -103,7 +116,7 @@ async def sqlalchemy_query(
         def sqlalchemy_query_flow():
             sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                user="prefect",
+                username="prefect",
                 password="prefect_password",
                 database="postgres",
             )
