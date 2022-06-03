@@ -48,3 +48,4 @@ plugins:
 nav:
     - Home: index.md
     - Credentials: credentials.md
+    - Database: database.md
