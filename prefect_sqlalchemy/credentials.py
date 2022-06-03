@@ -120,7 +120,7 @@ class DatabaseCredentials:
                     f"all of these URL params are required: "
                     f"{required_url_keys}"
                 )
-            self.url = URL.create(**url_params)  # from params
+            self.connect_url = URL.create(**url_params)  # from params
         else:
             if any(val for val in url_params.values()):
                 raise ValueError(
@@ -129,7 +129,9 @@ class DatabaseCredentials:
                     f"{url_params.keys()}"
                 )
             if not isinstance(self.url, URL):
-                self.url = make_url(self.url)  # from string
+                self.connect_url = make_url(self.url)  # from string
+            else:
+                self.connect_url = self.url  # from URL
 
     def get_engine(self) -> Union["Connection", "AsyncConnection"]:
         """
@@ -177,7 +179,9 @@ class DatabaseCredentials:
             ```
         """
         engine_kwargs = dict(
-            url=self.url, connect_args=self.connect_args or {}, poolclass=NullPool
+            url=self.connect_url,
+            connect_args=self.connect_args or {},
+            poolclass=NullPool,
         )
         if self._async_supported:
             engine = create_async_engine(**engine_kwargs)
