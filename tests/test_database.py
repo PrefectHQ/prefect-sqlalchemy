@@ -146,3 +146,14 @@ def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
 
     result = test_flow().result().result()
     assert result is None
+
+
+def test_sqlalchemy_execute_twice_no_error(sqlalchemy_credentials_sync):
+    @flow
+    def test_flow():
+        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
+        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
+        return result
+
+    result = test_flow().result().result()
+    assert result is None

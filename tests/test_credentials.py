@@ -47,13 +47,14 @@ def test_sqlalchemy_credentials_get_engine_async(driver):
             driver, "user", "password", "database", host="localhost", port=5432
         )
         assert sqlalchemy_credentials._async_supported is True
+        assert sqlalchemy_credentials.url is None
 
-        expected_url = "postgresql+asyncpg://user:***@localhost:5432/database"
-        assert repr(sqlalchemy_credentials.url) == expected_url
-        assert isinstance(sqlalchemy_credentials.url, URL)
+        expected_rendered_url = "postgresql+asyncpg://user:***@localhost:5432/database"
+        assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
+        assert isinstance(sqlalchemy_credentials.rendered_url, URL)
 
         engine = sqlalchemy_credentials.get_engine()
-        assert engine.url.render_as_string() == expected_url
+        assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, AsyncEngine)
 
     test_flow().result()
@@ -69,13 +70,14 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
             driver, "user", "password", "database", host="localhost", port=5432
         )
         assert sqlalchemy_credentials._async_supported is False
+        assert sqlalchemy_credentials.url is None
 
-        expected_url = "postgresql+psycopg2://user:***@localhost:5432/database"
-        assert repr(sqlalchemy_credentials.url) == expected_url
-        assert isinstance(sqlalchemy_credentials.url, URL)
+        expected_rendered_url = "postgresql+psycopg2://user:***@localhost:5432/database"
+        assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
+        assert isinstance(sqlalchemy_credentials.rendered_url, URL)
 
         engine = sqlalchemy_credentials.get_engine()
-        assert engine.url.render_as_string() == expected_url
+        assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, Engine)
 
     test_flow().result()
@@ -97,13 +99,14 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
             )
         sqlalchemy_credentials = DatabaseCredentials(url=url)
         assert sqlalchemy_credentials._async_supported is False
+        assert sqlalchemy_credentials.url == url
 
-        expected_url = "postgresql://username:***@account/database"
-        assert repr(sqlalchemy_credentials.url) == expected_url
-        assert isinstance(sqlalchemy_credentials.url, URL)
+        expected_rendered_url = "postgresql://username:***@account/database"
+        assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
+        assert isinstance(sqlalchemy_credentials.rendered_url, URL)
 
         engine = sqlalchemy_credentials.get_engine()
-        assert engine.url.render_as_string() == expected_url
+        assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, Engine)
 
     test_flow().result()
