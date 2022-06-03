@@ -2,7 +2,7 @@
 
 ## Welcome!
 
-Prefect integrations for interacting with SQLAlchemy.
+Prefect integrations for interacting with various databases.
 
 ## Getting Started
 
@@ -24,20 +24,33 @@ pip install prefect-sqlalchemy
 
 ### Write and run a flow
 
+Create table named customers and insert values.
 ```python
 from prefect import flow
-from prefect_sqlalchemy.tasks import (
-    goodbye_prefect_sqlalchemy,
-    hello_prefect_sqlalchemy,
-)
+
+from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+from prefect_sqlalchemy.database import sqlalchemy_execute
 
 
 @flow
-def example_flow():
-    hello_prefect_sqlalchemy
-    goodbye_prefect_sqlalchemy
+def sqlalchemy_execute_flow():
+    sqlalchemy_credentials = DatabaseCredentials(
+        driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+        username="prefect",
+        password="prefect_password",
+        database="postgres",
+    )
+    sqlalchemy_execute(
+        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
+        sqlalchemy_credentials,
+    )
+    sqlalchemy_execute(
+        "INSERT INTO customers (name, address) VALUES (:name, :address);",
+        sqlalchemy_credentials,
+        params={"name": "Marvin", "address": "Highway 42"}
+    )
 
-example_flow()
+sqlalchemy_execute_flow()
 ```
 
 ## Resources
