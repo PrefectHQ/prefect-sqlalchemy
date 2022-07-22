@@ -1,2 +1,2 @@
-prefect>=2.0a13
+prefect>=2.0b9
 sqlalchemy>=1.4.31

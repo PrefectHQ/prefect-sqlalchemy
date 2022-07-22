@@ -18,7 +18,7 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
         ):
             DatabaseCredentials(url="url", **url_params)
 
-    test_flow().result()
+    test_flow()
 
 
 @pytest.mark.parametrize("url_param", ["driver", "username", "database"])
@@ -34,7 +34,7 @@ def test_sqlalchemy_credentials_post_init_url_param_missing(url_param):
         with pytest.raises(ValueError, match="If the `url` is not provided"):
             DatabaseCredentials(**url_params)
 
-    test_flow().result()
+    test_flow()
 
 
 @pytest.mark.parametrize(
@@ -57,7 +57,7 @@ def test_sqlalchemy_credentials_get_engine_async(driver):
         assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, AsyncEngine)
 
-    test_flow().result()
+    test_flow()
 
 
 @pytest.mark.parametrize(
@@ -80,7 +80,7 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
         assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, Engine)
 
-    test_flow().result()
+    test_flow()
 
 
 @pytest.mark.parametrize("url_type", ["string", "URL"])
@@ -109,4 +109,4 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
         assert engine.url.render_as_string() == expected_rendered_url
         assert isinstance(engine, Engine)
 
-    test_flow().result()
+    test_flow()

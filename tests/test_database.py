@@ -101,7 +101,7 @@ async def test_sqlalchemy_query_async(limit, sqlalchemy_credentials_async):
         )
         return result
 
-    result = (await test_flow()).result().result()
+    result = await test_flow()
     assert str(result[0][0]) == "query"
     assert result[0][1] == ("param",)
     if limit is None:
@@ -119,7 +119,7 @@ def test_sqlalchemy_query_sync(limit, sqlalchemy_credentials_sync):
         )
         return result
 
-    result = test_flow().result().result()
+    result = test_flow()
     assert str(result[0][0]) == "query"
     assert result[0][1] == ("param",)
     if limit is None:
@@ -131,11 +131,13 @@ def test_sqlalchemy_query_sync(limit, sqlalchemy_credentials_sync):
 async def test_sqlalchemy_execute_async(sqlalchemy_credentials_async):
     @flow
     async def test_flow():
-        result = await sqlalchemy_execute("statement", sqlalchemy_credentials_async)
+        result = await sqlalchemy_execute.submit(
+            "statement", sqlalchemy_credentials_async
+        )
         return result
 
-    result = ((await test_flow()).result()).result()
-    assert result is None
+    result = await test_flow()
+    assert result.result() is None
 
 
 def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
@@ -144,7 +146,7 @@ def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
         result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
         return result
 
-    result = test_flow().result().result()
+    result = test_flow()
     assert result is None
 
 
@@ -155,5 +157,5 @@ def test_sqlalchemy_execute_twice_no_error(sqlalchemy_credentials_sync):
         result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
         return result
 
-    result = test_flow().result().result()
+    result = test_flow()
     assert result is None
