@@ -150,6 +150,7 @@ class DatabaseCredentials(Block):
         if not self.url:
             required_url_keys = ("drivername", "username", "database")
             if not all(url_params[key] for key in required_url_keys):
+                required_url_keys = ("driver", "username", "database")
                 raise ValueError(
                     f"If the `url` is not provided, "
                     f"all of these URL params are required: "
