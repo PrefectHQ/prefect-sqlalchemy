@@ -1,6 +1,5 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
-from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
@@ -12,6 +11,8 @@ from sqlalchemy.pool import NullPool
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
+
+from prefect.blocks.core import Block
 
 
 class AsyncDriver(Enum):
@@ -86,10 +87,9 @@ class SyncDriver(Enum):
     MSSQL_PYMSSQL = "mssql+pymssql"
 
 
-@dataclass
-class DatabaseCredentials:
+class DatabaseCredentials(Block):
     """
-    Dataclass used to manage authentication with SQLAlchemy.
+    Block used to manage authentication with SQLAlchemy.
 
     Args:
         driver: The driver name, e.g. "postgresql+asyncpg"
@@ -110,6 +110,9 @@ class DatabaseCredentials:
             DBAPI's connect() method as additional keyword arguments.
     """
 
+    _block_type_name = "Database Credentials"
+    _logo_url = "https://github.com/PrefectHQ/orion/blob/main/docs/img/collections/sqlalchemy.png?raw=true"  # noqa
+
     driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
     username: Optional[str] = None
     password: Optional[str] = None
@@ -120,7 +123,7 @@ class DatabaseCredentials:
     url: Optional[Union[URL, str]] = None
     connect_args: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def block_initialization(self):
         """
         Initializes the engine.
         """
