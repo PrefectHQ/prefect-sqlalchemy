@@ -143,7 +143,7 @@ async def test_sqlalchemy_execute_async(sqlalchemy_credentials_async):
 def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
     @flow
     def test_flow():
-        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
+        result = sqlalchemy_execute.submit("statement", sqlalchemy_credentials_sync)
         return result
 
     result = test_flow()
@@ -153,8 +153,8 @@ def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
 def test_sqlalchemy_execute_twice_no_error(sqlalchemy_credentials_sync):
     @flow
     def test_flow():
-        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
-        result = sqlalchemy_execute("statement", sqlalchemy_credentials_sync)
+        result = sqlalchemy_execute.submit("statement", sqlalchemy_credentials_sync)
+        result = sqlalchemy_execute.submit("statement", sqlalchemy_credentials_sync)
         return result
 
     result = test_flow()
