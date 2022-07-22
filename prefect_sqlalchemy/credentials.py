@@ -3,6 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
+from pydantic import SecretStr
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -115,7 +116,7 @@ class DatabaseCredentials(Block):
 
     driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
     username: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[SecretStr] = None
     database: Optional[str] = None
     host: Optional[str] = None
     port: Optional[str] = None
