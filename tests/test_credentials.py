@@ -13,6 +13,8 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
     @flow
     def test_flow():
         url_params = {url_param: url_param}
+        if url_param == "query":
+            url_params["query"] = {"query": "query"}
         with pytest.raises(
             ValueError, match="The `url` should not be provided alongside"
         ):
@@ -44,7 +46,12 @@ def test_sqlalchemy_credentials_get_engine_async(driver):
     @flow
     def test_flow():
         sqlalchemy_credentials = DatabaseCredentials(
-            driver, "user", "password", "database", host="localhost", port=5432
+            driver=driver,
+            username="user",
+            password="password",
+            database="database",
+            host="localhost",
+            port=5432,
         )
         assert sqlalchemy_credentials._async_supported is True
         assert sqlalchemy_credentials.url is None
@@ -67,7 +74,12 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
     @flow
     def test_flow():
         sqlalchemy_credentials = DatabaseCredentials(
-            driver, "user", "password", "database", host="localhost", port=5432
+            driver=driver,
+            username="user",
+            password="password",
+            database="database",
+            host="localhost",
+            port=5432,
         )
         assert sqlalchemy_credentials._async_supported is False
         assert sqlalchemy_credentials.url is None
