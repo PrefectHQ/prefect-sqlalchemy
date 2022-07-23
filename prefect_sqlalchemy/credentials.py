@@ -120,7 +120,7 @@ class DatabaseCredentials(Block):
     """
 
     _block_type_name = "Database Credentials"
-    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/bfec58128d4d985ff29c220c58529533/download.svg"  # noqa
+    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
     driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
     username: Optional[str] = None
