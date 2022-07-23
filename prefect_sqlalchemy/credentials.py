@@ -1,9 +1,9 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
-from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
+from pydantic import SecretStr
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -12,6 +12,8 @@ from sqlalchemy.pool import NullPool
 if TYPE_CHECKING:
     from sqlalchemy.engine import Connection
     from sqlalchemy.ext.asyncio.engine import AsyncConnection
+
+from prefect.blocks.core import Block
 
 
 class AsyncDriver(Enum):
@@ -86,10 +88,9 @@ class SyncDriver(Enum):
     MSSQL_PYMSSQL = "mssql+pymssql"
 
 
-@dataclass
-class DatabaseCredentials:
+class DatabaseCredentials(Block):
     """
-    Dataclass used to manage authentication with SQLAlchemy.
+    Block used to manage authentication with a database.
 
     Args:
         driver: The driver name, e.g. "postgresql+asyncpg"
@@ -108,11 +109,22 @@ class DatabaseCredentials:
             this alongside with other URL params as it will raise a `ValueError`.
         connect_args: The options which will be passed directly to the
             DBAPI's connect() method as additional keyword arguments.
+
+    Example:
+        Load stored database credentials:
+        ```python
+        from prefect_sqlalchemy import DatabaseCredentials
+
+        database_block = DatabaseCredentials.load("BLOCK_NAME")
+        ```
     """
+
+    _block_type_name = "Database Credentials"
+    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
     driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
     username: Optional[str] = None
-    password: Optional[str] = None
+    password: Optional[SecretStr] = None
     database: Optional[str] = None
     host: Optional[str] = None
     port: Optional[str] = None
@@ -120,7 +132,7 @@ class DatabaseCredentials:
     url: Optional[Union[URL, str]] = None
     connect_args: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def block_initialization(self):
         """
         Initializes the engine.
         """
@@ -146,6 +158,7 @@ class DatabaseCredentials:
         if not self.url:
             required_url_keys = ("drivername", "username", "database")
             if not all(url_params[key] for key in required_url_keys):
+                required_url_keys = ("driver", "username", "database")
                 raise ValueError(
                     f"If the `url` is not provided, "
                     f"all of these URL params are required: "
