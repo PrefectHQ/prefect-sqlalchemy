@@ -109,6 +109,14 @@ class DatabaseCredentials(Block):
             this alongside with other URL params as it will raise a `ValueError`.
         connect_args: The options which will be passed directly to the
             DBAPI's connect() method as additional keyword arguments.
+
+    Example:
+        Load stored database credentials:
+        ```python
+        from prefect_sqlalchemy import DatabaseCredentials
+
+        database_block = DatabaseCredentials.load("BLOCK_NAME")
+        ```
     """
 
     _block_type_name = "Database Credentials"
