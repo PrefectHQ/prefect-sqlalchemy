@@ -11,9 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated tests to be compatible with core Prefect library (v2.0b9) and bumped required version - [#10](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/10)
-- Converted `DatabaseCredentials` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
-
 ### Deprecated
 
 ### Removed
@@ -21,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## 0.1.1
+
+Released on July 23rd, 2022.
+
+### Changed
+
+- Updated tests to be compatible with core Prefect library (v2.0b9) and bumped required version - [#10](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/10)
+- Converted `DatabaseCredentials` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
 
 ## 0.1.0
 
