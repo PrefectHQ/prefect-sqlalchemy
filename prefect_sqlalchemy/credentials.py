@@ -90,7 +90,7 @@ class SyncDriver(Enum):
 
 class DatabaseCredentials(Block):
     """
-    Block used to manage authentication with SQLAlchemy.
+    Block used to manage authentication with a database.
 
     Args:
         driver: The driver name, e.g. "postgresql+asyncpg"
