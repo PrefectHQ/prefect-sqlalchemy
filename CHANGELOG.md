@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+- Fixed `DatabaseCredentials` to `get_secret_value` for password.
 
 ### Security
 
