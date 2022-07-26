@@ -11,18 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Updated tests to be compatible with core Prefect library (v2.0b9) and bumped required version - [#18](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/18)
-- Converted `DatabaseCredentials` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
-- Improve docstring; clarifying `limit` in `sqlalchemy_execute` is executed on client side - [#21](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/21)
-
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fixed `DatabaseCredentials` to `get_secret_value` for password - [#22](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/22)
 
 ### Security
+
+## 0.1.1
+
+Released on July 26th, 2022.
+
+### Changed
+
+- Updated tests to be compatible with core Prefect library (v2.0b9) and bumped required version - [#18](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/18)
+- Converted `DatabaseCredentials` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
+- Improve docstring; clarifying `limit` in `sqlalchemy_execute` is executed on client side - [#21](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/21)
+
+### Fixed
+- Fixed `DatabaseCredentials` to `get_secret_value` for password - [#22](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/22)
 
 ## 0.1.0
 
