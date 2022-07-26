@@ -100,7 +100,10 @@ async def sqlalchemy_query(
         query: The query to execute against the database.
         sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
-        limit: The number of rows to fetch.
+        limit: The number of rows to fetch. Note, this parameter is
+            executed on the client side, i.e. passed to `fetchmany`.
+            To limit on the server side, add the `LIMIT` clause, or
+            the dialect's equivalent clause, like `TOP`, to the query.
 
     Returns:
         The fetched results.
