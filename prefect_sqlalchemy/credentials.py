@@ -149,7 +149,7 @@ class DatabaseCredentials(Block):
         url_params = dict(
             drivername=drivername,
             username=self.username,
-            password=self.password,
+            password=self.password.get_secret_value() if self.password else None,
             database=self.database,
             host=self.host,
             port=self.port,
