@@ -7,16 +7,17 @@ from prefect import task
 from sqlalchemy.sql import text
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine import Connection, Engine
     from sqlalchemy.engine.cursor import CursorResult
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
     from prefect_sqlalchemy.credentials import DatabaseCredentials
-    from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
-    from sqlalchemy.engine import Engine, Connection
 
 
 @contextlib.asynccontextmanager
 async def _connect(
-    engine: Union["AsyncEngine", "Engine"], async_supported: bool,
+    engine: Union["AsyncEngine", "Engine"],
+    async_supported: bool,
 ) -> Union["AsyncConnection", "Connection"]:
     """
     Helper method to create a connection to the database, either

@@ -128,10 +128,7 @@ def test_sqlalchemy_credentials_sqlite(tmp_path):
     def test_flow():
         driver = SyncDriver.SQLITE_PYSQLITE
         database = str(tmp_path / "prefect.db")
-        sqlalchemy_credentials = DatabaseCredentials(
-            driver=driver,
-            database=database
-        )
+        sqlalchemy_credentials = DatabaseCredentials(driver=driver, database=database)
         assert sqlalchemy_credentials._async_supported is False
 
         expected_rendered_url = f"sqlite+pysqlite:///{database}"
