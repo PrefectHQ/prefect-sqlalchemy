@@ -14,3 +14,4 @@ interrogate
 coverage
 psycopg2
 asyncpg
+aiosqlite

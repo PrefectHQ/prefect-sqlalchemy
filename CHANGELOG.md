@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `sqlite+*` drivers by dropping 'username' from the required input keywords - [#23](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/23)
+- Fixed `sqlalchemy_query` for drivers that require the connection to be alive while fetching - [#23](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/23)
+
 ### Security
 
 ## 0.1.1

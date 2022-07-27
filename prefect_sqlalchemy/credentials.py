@@ -156,15 +156,21 @@ class DatabaseCredentials(Block):
             query=self.query,
         )
         if not self.url:
-            required_url_keys = ("drivername", "username", "database")
+            required_url_keys = ("drivername", "database")
             if not all(url_params[key] for key in required_url_keys):
-                required_url_keys = ("driver", "username", "database")
+                required_url_keys = ("driver", "database")
                 raise ValueError(
                     f"If the `url` is not provided, "
                     f"all of these URL params are required: "
                     f"{required_url_keys}"
                 )
-            self.rendered_url = URL.create(**url_params)  # from params
+            self.rendered_url = URL.create(
+                **{
+                    url_key: url_param
+                    for url_key, url_param in url_params.items()
+                    if url_param is not None
+                }
+            )  # from params
         else:
             if any(val for val in url_params.values()):
                 raise ValueError(
