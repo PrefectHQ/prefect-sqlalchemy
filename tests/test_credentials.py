@@ -23,13 +23,12 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
     test_flow()
 
 
-@pytest.mark.parametrize("url_param", ["driver", "username", "database"])
+@pytest.mark.parametrize("url_param", ["driver", "database"])
 def test_sqlalchemy_credentials_post_init_url_param_missing(url_param):
     @flow
     def test_flow():
         url_params = {
             "driver": "driver",
-            "username": "username",
             "database": "database",
         }
         url_params.pop(url_param)
@@ -114,6 +113,28 @@ def test_sqlalchemy_credentials_get_engine_url(url_type):
         assert sqlalchemy_credentials.url == url
 
         expected_rendered_url = "postgresql://username:***@account/database"
+        assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
+        assert isinstance(sqlalchemy_credentials.rendered_url, URL)
+
+        engine = sqlalchemy_credentials.get_engine()
+        assert engine.url.render_as_string() == expected_rendered_url
+        assert isinstance(engine, Engine)
+
+    test_flow()
+
+
+def test_sqlalchemy_credentials_sqlite(tmp_path):
+    @flow
+    def test_flow():
+        driver = SyncDriver.SQLITE_PYSQLITE
+        database = str(tmp_path / "prefect.db")
+        sqlalchemy_credentials = DatabaseCredentials(
+            driver=driver,
+            database=database
+        )
+        assert sqlalchemy_credentials._async_supported is False
+
+        expected_rendered_url = f"sqlite+pysqlite:///{database}"
         assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
         assert isinstance(sqlalchemy_credentials.rendered_url, URL)
 

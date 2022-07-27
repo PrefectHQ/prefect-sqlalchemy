@@ -1,5 +1,6 @@
 """Tasks for querying a database with SQLAlchemy"""
 
+import contextlib
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from prefect import task
@@ -9,32 +10,47 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.cursor import CursorResult
 
     from prefect_sqlalchemy.credentials import DatabaseCredentials
+    from sqlalchemy.ext.asyncio import AsyncEngine, AsyncConnection
+    from sqlalchemy.engine import Engine, Connection
+
+
+@contextlib.asynccontextmanager
+async def _connect(
+    engine: Union["AsyncEngine", "Engine"], async_supported: bool,
+) -> Union["AsyncConnection", "Connection"]:
+    """
+    Helper method to create a connection to the database, either
+    synchronously or asynchronously.
+    """
+    try:
+        # a context manager nested within a context manager!
+        if async_supported:
+            async with engine.connect() as connection:
+                yield connection
+        else:
+            with engine.connect() as connection:
+                yield connection
+    finally:
+        dispose = engine.dispose()
+        if async_supported:
+            await dispose
 
 
 async def _execute(
+    connection: Union["AsyncConnection", "Connection"],
     query: str,
-    sqlalchemy_credentials: "DatabaseCredentials",
-    params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
+    params: Optional[Union[Tuple[Any], Dict[str, Any]]],
+    async_supported: bool,
 ) -> "CursorResult":
     """
-    Executes a SQL query.
+    Helper method to execute database queries or statements, either
+    synchronously or asynchronously.
     """
-    engine = sqlalchemy_credentials.get_engine()
-    try:
-        execute_args = (text(query), params)
-        if sqlalchemy_credentials._async_supported:
-            async with engine.connect() as connection:
-                result = await connection.execute(*execute_args)
-                await connection.commit()
-        else:
-            with engine.connect() as connection:
-                result = connection.execute(*execute_args)
-                # commit is not available
-    finally:
-        if sqlalchemy_credentials._async_supported:
-            await engine.dispose()
-        else:
-            engine.dispose()
+    print(params)
+    result = connection.execute(text(query), params)
+    if async_supported:
+        result = await result
+        await connection.commit()
     return result
 
 
@@ -63,10 +79,8 @@ async def sqlalchemy_execute(
         @flow
         def sqlalchemy_execute_flow():
             sqlalchemy_credentials = DatabaseCredentials(
-                driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                username="prefect",
-                password="prefect_password",
-                database="postgres",
+                driver=AsyncDriver.SQLITE_AIOSQLITE,
+                database="prefect.db",
             )
             sqlalchemy_execute(
                 "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
@@ -83,7 +97,10 @@ async def sqlalchemy_execute(
     """
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
-    await _execute(statement, sqlalchemy_credentials, params=params)
+    engine = sqlalchemy_credentials.get_engine()
+    async_supported = sqlalchemy_credentials._async_supported
+    async with _connect(engine, async_supported) as connection:
+        await _execute(connection, statement, params, async_supported)
 
 
 @task
@@ -118,10 +135,8 @@ async def sqlalchemy_query(
         @flow
         def sqlalchemy_query_flow():
             sqlalchemy_credentials = DatabaseCredentials(
-                driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                username="prefect",
-                password="prefect_password",
-                database="postgres",
+                driver=AsyncDriver.SQLITE_AIOSQLITE,
+                database="prefect.db",
             )
             result = sqlalchemy_query(
                 "SELECT * FROM customers WHERE name = :name;",
@@ -133,8 +148,10 @@ async def sqlalchemy_query(
         sqlalchemy_query_flow()
         ```
     """
-    result = await _execute(query, sqlalchemy_credentials, params=params)
-    if limit is None:
-        return result.fetchall()
-    else:
-        return result.fetchmany(limit)
+    engine = sqlalchemy_credentials.get_engine()
+    async_supported = sqlalchemy_credentials._async_supported
+    async with _connect(engine, async_supported) as connection:
+        result = await _execute(connection, query, params, async_supported)
+        # some databases, like sqlite, require a connection still open to fetch!
+        rows = result.fetchall() if limit is None else result.fetchmany(limit)
+    return rows
