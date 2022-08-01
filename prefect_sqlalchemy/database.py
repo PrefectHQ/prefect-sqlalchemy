@@ -47,7 +47,6 @@ async def _execute(
     Helper method to execute database queries or statements, either
     synchronously or asynchronously.
     """
-    print(params)
     result = connection.execute(text(query), params)
     if async_supported:
         result = await result
