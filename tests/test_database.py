@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from prefect import flow
 
+from prefect_sqlalchemy.credentials import AsyncDriver, DatabaseCredentials, SyncDriver
 from prefect_sqlalchemy.database import sqlalchemy_execute, sqlalchemy_query
 
 
@@ -159,3 +160,73 @@ def test_sqlalchemy_execute_twice_no_error(sqlalchemy_credentials_sync):
 
     result = test_flow()
     assert result.result() is None
+
+
+def test_sqlalchemy_execute_sqlite(tmp_path):
+    @flow
+    def sqlalchemy_execute_flow():
+        sqlalchemy_credentials = DatabaseCredentials(
+            driver=SyncDriver.SQLITE_PYSQLITE,
+            database=str(tmp_path / "prefect.db"),
+        )
+        sqlalchemy_execute(
+            "CREATE TABLE customers (name varchar, address varchar);",
+            sqlalchemy_credentials,
+        )
+        sqlalchemy_execute(
+            "INSERT INTO customers (name, address) VALUES (:name, :address);",
+            sqlalchemy_credentials,
+            params={"name": "Marvin", "address": "Highway 42"},
+        )
+        result = sqlalchemy_query(
+            "SELECT * FROM customers WHERE name = :name;",
+            sqlalchemy_credentials,
+            params={"name": "Marvin"},
+        )
+        return result
+
+    rows = sqlalchemy_execute_flow()
+    assert len(rows) == 1
+
+    row = rows[0]
+    assert len(row) == 2
+    assert row[0] == "Marvin"
+    assert row[1] == "Highway 42"
+
+
+async def test_sqlalchemy_execute_sqlite_async(tmp_path):
+    @flow
+    async def sqlalchemy_execute_flow():
+        sqlalchemy_credentials = DatabaseCredentials(
+            driver=AsyncDriver.SQLITE_AIOSQLITE,
+            database=str(tmp_path / "prefect_async.db"),
+        )
+        await sqlalchemy_execute(
+            "CREATE TABLE customers (name varchar, address varchar);",
+            sqlalchemy_credentials,
+        )
+        await sqlalchemy_execute(
+            "INSERT INTO customers (name, address) VALUES (:name, :address);",
+            sqlalchemy_credentials,
+            params={"name": "Marvin", "address": "Highway 42"},
+        )
+        await sqlalchemy_execute(
+            "INSERT INTO customers (name, address) VALUES (:name, :address);",
+            sqlalchemy_credentials,
+            params={"name": "Ford", "address": "Highway 42"},
+        )
+        result = await sqlalchemy_query(
+            "SELECT * FROM customers WHERE address = :address;",
+            sqlalchemy_credentials,
+            params={"address": "Highway 42"},
+        )
+        return result
+
+    rows = await sqlalchemy_execute_flow()
+    assert len(rows) == 2
+
+    expected_names = {"Ford", "Marvin"}
+    expected_address = "Highway 42"
+    actual_names, actual_addresses = zip(*rows)
+    assert expected_names == set(actual_names)
+    assert expected_address == actual_addresses[0]
