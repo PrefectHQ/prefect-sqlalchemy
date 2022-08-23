@@ -92,7 +92,7 @@ class DatabaseCredentials(Block):
     """
     Block used to manage authentication with a database.
 
-    Args:
+    Attributes:
         driver: The driver name, e.g. "postgresql+asyncpg"
         database: The name of the database to use.
         username: The user name used to authenticate.
