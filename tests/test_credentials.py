@@ -18,7 +18,7 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
         with pytest.raises(
             ValueError, match="The `url` should not be provided alongside"
         ):
-            DatabaseCredentials(url="url", **url_params)
+            DatabaseCredentials(url="postgresql+asyncpg://user:password@localhost:5432/database", **url_params)
 
     test_flow()
 
