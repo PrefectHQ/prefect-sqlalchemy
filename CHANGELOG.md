@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+Fixed registration error by changing `url` type to `AnyUrl` - [#29](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/29)
+
 ### Security
 
 ## 0.1.2
