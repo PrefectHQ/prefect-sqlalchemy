@@ -18,7 +18,10 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
         with pytest.raises(
             ValueError, match="The `url` should not be provided alongside"
         ):
-            DatabaseCredentials(url="url", **url_params)
+            DatabaseCredentials(
+                url="postgresql+asyncpg://user:password@localhost:5432/database",
+                **url_params,
+            )
 
     test_flow()
 
@@ -94,20 +97,10 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
     test_flow()
 
 
-@pytest.mark.parametrize("url_type", ["string", "URL"])
-def test_sqlalchemy_credentials_get_engine_url(url_type):
+def test_sqlalchemy_credentials_get_engine_url():
     @flow
     def test_flow():
-        if url_type == "string":
-            url = "postgresql://username:password@account/database"
-        else:
-            url = URL.create(
-                "postgresql",
-                "username",
-                "password",
-                host="account",
-                database="database",
-            )
+        url = "postgresql://username:password@account/database"
         sqlalchemy_credentials = DatabaseCredentials(url=url)
         assert sqlalchemy_credentials._async_supported is False
         assert sqlalchemy_credentials.url == url

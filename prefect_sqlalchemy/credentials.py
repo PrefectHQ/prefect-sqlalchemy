@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from pydantic import SecretStr
+from pydantic import AnyUrl, SecretStr
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -129,7 +129,7 @@ class DatabaseCredentials(Block):
     host: Optional[str] = None
     port: Optional[str] = None
     query: Optional[Dict[str, str]] = None
-    url: Optional[Union[URL, str]] = None
+    url: Optional[AnyUrl] = None
     connect_args: Optional[Dict[str, Any]] = None
 
     def block_initialization(self):
@@ -178,10 +178,7 @@ class DatabaseCredentials(Block):
                     f"alongside any of these URL params: "
                     f"{url_params.keys()}"
                 )
-            if not isinstance(self.url, URL):
-                self.rendered_url = make_url(self.url)  # from string
-            else:
-                self.rendered_url = self.url  # from URL
+            self.rendered_url = make_url(str(self.url))
 
     def get_engine(self) -> Union["Connection", "AsyncConnection"]:
         """
