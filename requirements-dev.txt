@@ -15,3 +15,4 @@ coverage
 psycopg2
 asyncpg
 aiosqlite
+pillow
