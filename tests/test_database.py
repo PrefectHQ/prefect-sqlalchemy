@@ -138,7 +138,7 @@ async def test_sqlalchemy_execute_async(sqlalchemy_credentials_async):
         return result
 
     result = await test_flow()
-    assert result.result() is None
+    assert await (result.result()) is None
 
 
 def test_sqlalchemy_execute_sync(sqlalchemy_credentials_sync):
