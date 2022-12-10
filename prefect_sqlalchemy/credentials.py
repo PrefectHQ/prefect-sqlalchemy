@@ -1,19 +1,15 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
+from contextlib import asynccontextmanager
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-
-from pydantic import AnyUrl, SecretStr
-from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.url import URL, make_url
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection
-    from sqlalchemy.ext.asyncio.engine import AsyncConnection
+from typing import Any, Dict, Generator, Optional, Union
 
 from prefect.blocks.core import Block
+from pydantic import AnyUrl, Field, SecretStr
+from sqlalchemy.engine import Connection, Engine, create_engine
+from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
+from sqlalchemy.pool import NullPool
 
 
 class AsyncDriver(Enum):
@@ -122,15 +118,49 @@ class DatabaseCredentials(Block):
     _block_type_name = "Database Credentials"
     _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
-    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
-    username: Optional[str] = None
-    password: Optional[SecretStr] = None
-    database: Optional[str] = None
-    host: Optional[str] = None
-    port: Optional[str] = None
-    query: Optional[Dict[str, str]] = None
-    url: Optional[AnyUrl] = None
-    connect_args: Optional[Dict[str, Any]] = None
+    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = Field(
+        default=None, description="The driver name to use."
+    )
+    username: Optional[str] = Field(
+        default=None, description="The user name used to authenticate."
+    )
+    password: Optional[SecretStr] = Field(
+        default=None, description="The password used to authenticate."
+    )
+    database: Optional[str] = Field(
+        default=None, description="The name of the database to use."
+    )
+    host: Optional[str] = Field(
+        default=None, description="The host address of the database."
+    )
+    port: Optional[str] = Field(
+        default=None, description="The port to connect to the database."
+    )
+    query: Optional[Dict[str, str]] = Field(
+        default=None,
+        description=(
+            "A dictionary of string keys to string values to be passed to the dialect "
+            "and/or the DBAPI upon connect. To specify non-string parameters to a "
+            "Python DBAPI directly, use connect_args."
+        ),
+    )
+    url: Optional[AnyUrl] = Field(
+        default=None,
+        description=(
+            "Manually create and provide a URL to create the engine, this is useful "
+            "for external dialects, e.g. Snowflake, because some of the params, "
+            "such as 'warehouse', is not directly supported in the vanilla "
+            "`sqlalchemy.engine.URL.create` method; do not provide this "
+            "alongside with other URL params as it will raise a `ValueError`."
+        ),
+    )
+    connect_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "The options which will be passed directly to the DBAPI's connect() "
+            "method as additional keyword arguments."
+        ),
+    )
 
     def block_initialization(self):
         """
@@ -180,13 +210,13 @@ class DatabaseCredentials(Block):
                 )
             self.rendered_url = make_url(str(self.url))
 
-    def get_engine(self) -> Union["Connection", "AsyncConnection"]:
+    def get_engine(self) -> Union[Engine, AsyncEngine]:
         """
         Returns an authenticated engine that can be
         used to query from databases.
 
         Returns:
-            The authenticated SQLAlchemy Connection / AsyncConnection.
+            The authenticated SQLAlchemy Engine / AsyncEngine.
 
         Examples:
             Create an asynchronous engine to PostgreSQL using URL params.
@@ -235,3 +265,70 @@ class DatabaseCredentials(Block):
         else:
             engine = create_engine(**engine_kwargs)
         return engine
+
+    def get_connection(
+        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = False
+    ) -> Union[Connection, AsyncConnection]:
+        """
+        Returns an authenticated connection that can be used to query from databases.
+
+        Args:
+            engine: A SQLAlchemy Engine / AsyncEngine to use for the connection.
+            begin: Whether to begin a transaction on the connection.
+
+        Returns:
+            The authenticated SQLAlchemy Connection / AsyncConnection.
+
+        Examples:
+            Create an synchronous connection as a context-managed transaction.
+            ```python
+            from prefect import flow
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            @flow
+            def get_connection_flow():
+                database_credentials = DatabaseCredentials.load("BLOCK_NAME")
+                with database_credentials.get_connection(begin=True) as connection:
+                    connection.execute("SELECT * FROM table LIMIT 1;")
+            ```
+
+            Create an asynchronous connection as a context-managed transacation.
+            ```python
+            from prefect import flow
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            @flow
+            def get_connection_flow():
+                database_credentials = DatabaseCredentials.load("BLOCK_NAME")
+                async with database_credentials.get_connection(begin=True) as connection:
+                    await connection.execute("SELECT * FROM table LIMIT 1;")
+            ```
+        """  # noqa: E501
+        engine = engine or self.get_engine()
+        if begin:
+            return engine.begin()
+        else:
+            return engine.connect()
+
+    @asynccontextmanager
+    async def _async_or_sync_connect(
+        self,
+    ) -> Generator[Union[AsyncConnection, Connection], None, None]:
+        """
+        Helper method to start an engine and a connection to the database, either
+        synchronously or asynchronously. If an operation fails, it rollsback the
+        entire transaction. Finally, upon completion, closes the engine.
+        """
+        engine = self.get_engine()
+        try:
+            # a context manager nested within a context manager!
+            if self._async_supported:
+                async with self.get_connection(engine=engine, begin=True) as connection:
+                    yield connection
+            else:
+                with self.get_connection(engine=engine, begin=True) as connection:
+                    yield connection
+        finally:
+            dispose = engine.dispose()
+            if self._async_supported:
+                await dispose

@@ -1,17 +1,17 @@
 """Tasks for querying a database with SQLAlchemy"""
 
 import contextlib
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from prefect import task
+from prefect.blocks.abstract import DatabaseBlock
+from prefect.utilities.asyncutils import sync_compatible
+from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.engine.cursor import CursorResult
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from sqlalchemy.sql import text
 
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection, Engine
-    from sqlalchemy.engine.cursor import CursorResult
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
-
-    from prefect_sqlalchemy.credentials import DatabaseCredentials
+from prefect_sqlalchemy.credentials import DatabaseCredentials
 
 
 @contextlib.asynccontextmanager
@@ -155,3 +155,134 @@ async def sqlalchemy_query(
         # some databases, like sqlite, require a connection still open to fetch!
         rows = result.fetchall() if limit is None else result.fetchmany(limit)
     return rows
+
+
+class Database(DatabaseBlock):
+    """
+    A block for querying a database with SQLAlchemy.
+
+    Examples:
+        Create table named customers and insert values; then fetch the first 10 rows.
+        ```python
+        from prefect import flow
+        from prefect_sqlalchemy import Database
+
+        @flow
+        def database_flow():
+            database = Database.load("database")
+            database.execute(
+                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
+            )
+            for i in range(1, 42):
+                database.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": f"Highway {i}"},
+                )
+            return database.fetch_many(
+                "SELECT * FROM customers WHERE name = :name;",
+                parameters={"name": "Marvin"},
+                limit=10
+            )
+
+        database_flow()
+        ```
+    """
+
+    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
+
+    database_credentials: "DatabaseCredentials"
+
+    @contextlib.asynccontextmanager
+    async def _async_or_sync_execute(
+        self,
+        operation: str,
+        parameters: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
+    ) -> CursorResult:
+        """
+        Helper method to execute database queries or statements, either
+        synchronously or asynchronously.
+        """
+        credentials = self.database_credentials
+        async with credentials._async_or_sync_connect() as connection:
+            result = connection.execute(text(operation), parameters)
+            if credentials._async_supported:
+                result = await result
+                await connection.commit()
+            yield result
+
+    @sync_compatible
+    async def fetch_one(
+        self, operation, parameters: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Any]:
+        """
+        Fetch a single result from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        async with self._async_or_sync_execute(operation, parameters) as result:
+            return result.fetchone()
+
+    @sync_compatible
+    async def fetch_many(
+        self,
+        operation,
+        parameters: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = 5,
+    ) -> List[Tuple[Any]]:
+        """
+        Fetch a limited number of results from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+            limit: The number of results to return.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        async with self._async_or_sync_execute(operation, parameters) as result:
+            return result.fetchmany(size=limit)
+
+    @sync_compatible
+    async def fetch_all(
+        self,
+        operation,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> List[Tuple[Any]]:
+        """
+        Fetch all results from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        async with self._async_or_sync_execute(operation, parameters) as result:
+            return result.fetchall()
+
+    @sync_compatible
+    async def execute(
+        self,
+        operation,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Executes an operation on the database. This method is intended to be used
+        for operations that do not return data, such as INSERT, UPDATE, or DELETE.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+        """
+        async with self._async_or_sync_execute(operation, parameters) as result:
+            return result
