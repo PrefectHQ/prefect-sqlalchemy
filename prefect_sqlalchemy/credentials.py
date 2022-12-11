@@ -273,8 +273,10 @@ class DatabaseCredentials(Block):
         Returns an authenticated connection that can be used to query from databases.
 
         Args:
-            engine: A SQLAlchemy Engine / AsyncEngine to use for the connection.
-            begin: Whether to begin a transaction on the connection.
+            engine: A SQLAlchemy Engine / AsyncEngine to use for the connection;
+                if not provided, a new engine will be created.
+            begin: Whether to begin a transaction on the connection; if True, if
+                any operations fail, the entire transaction will be rolled back.
 
         Returns:
             The authenticated SQLAlchemy Connection / AsyncConnection.

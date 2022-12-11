@@ -197,6 +197,7 @@ class Database(DatabaseBlock):
         self,
         operation: str,
         parameters: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
+        **execution_options: Dict[str, Any]
     ) -> CursorResult:
         """
         Helper method to execute database queries or statements, either
@@ -204,7 +205,9 @@ class Database(DatabaseBlock):
         """
         credentials = self.database_credentials
         async with credentials._async_or_sync_connect() as connection:
-            result = connection.execute(text(operation), parameters)
+            result = connection.execute(
+                text(operation), parameters, execution_options=execution_options
+            )
             if credentials._async_supported:
                 result = await result
                 await connection.commit()
@@ -212,7 +215,10 @@ class Database(DatabaseBlock):
 
     @sync_compatible
     async def fetch_one(
-        self, operation, parameters: Optional[Dict[str, Any]] = None
+        self,
+        operation: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any]
     ) -> Tuple[Any]:
         """
         Fetch a single result from the database.
@@ -220,20 +226,24 @@ class Database(DatabaseBlock):
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
 
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        async with self._async_or_sync_execute(operation, parameters) as result:
+        async with self._async_or_sync_execute(
+            operation, parameters, **execution_options
+        ) as result:
             return result.fetchone()
 
     @sync_compatible
     async def fetch_many(
         self,
-        operation,
+        operation: str,
         parameters: Optional[Dict[str, Any]] = None,
         limit: Optional[int] = 5,
+        **execution_options: Dict[str, Any]
     ) -> List[Tuple[Any]]:
         """
         Fetch a limited number of results from the database.
@@ -242,19 +252,23 @@ class Database(DatabaseBlock):
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
             limit: The number of results to return.
+            **execution_options: Additional options to pass to `connection.execute`.
 
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        async with self._async_or_sync_execute(operation, parameters) as result:
+        async with self._async_or_sync_execute(
+            operation, parameters, **execution_options
+        ) as result:
             return result.fetchmany(size=limit)
 
     @sync_compatible
     async def fetch_all(
         self,
-        operation,
+        operation: str,
         parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any]
     ) -> List[Tuple[Any]]:
         """
         Fetch all results from the database.
@@ -262,19 +276,23 @@ class Database(DatabaseBlock):
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
 
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        async with self._async_or_sync_execute(operation, parameters) as result:
+        async with self._async_or_sync_execute(
+            operation, parameters, **execution_options
+        ) as result:
             return result.fetchall()
 
     @sync_compatible
     async def execute(
         self,
-        operation,
+        operation: str,
         parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any]
     ) -> None:
         """
         Executes an operation on the database. This method is intended to be used
@@ -283,6 +301,9 @@ class Database(DatabaseBlock):
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
         """
-        async with self._async_or_sync_execute(operation, parameters) as result:
+        async with self._async_or_sync_execute(
+            operation, parameters, **execution_options
+        ) as result:
             return result
