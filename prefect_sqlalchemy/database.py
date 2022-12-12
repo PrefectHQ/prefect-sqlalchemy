@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from prefect import task
 from prefect.blocks.abstract import DatabaseBlock
 from prefect.utilities.asyncutils import sync_compatible
+from pydantic import Field
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -161,6 +162,13 @@ class Database(DatabaseBlock):
     """
     A block for querying a database with SQLAlchemy.
 
+    Attributes:
+        database_credentials: The credentials to use to authenticate.
+        fetch_size: The number of rows to fetch at a time when calling fetch_many.
+            Note, this parameter is executed on the client side and is not
+            passed to the database. To limit on the server side, add the `LIMIT`
+            clause, or the dialect's equivalent clause, like `TOP`, to the query.
+
     Examples:
         Create table named customers and insert values; then fetch the first 10 rows.
         ```python
@@ -181,7 +189,6 @@ class Database(DatabaseBlock):
             return database.fetch_many(
                 "SELECT * FROM customers WHERE name = :name;",
                 parameters={"name": "Marvin"},
-                limit=10
             )
 
         database_flow()
@@ -191,6 +198,9 @@ class Database(DatabaseBlock):
     _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
     database_credentials: "DatabaseCredentials"
+    fetch_size: int = Field(
+        default=1, description="The number of rows to fetch at a time."
+    )
 
     @contextlib.asynccontextmanager
     async def _async_or_sync_execute(
@@ -242,7 +252,7 @@ class Database(DatabaseBlock):
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        limit: Optional[int] = 5,
+        size: Optional[int] = None,
         **execution_options: Dict[str, Any]
     ) -> List[Tuple[Any]]:
         """
@@ -251,7 +261,8 @@ class Database(DatabaseBlock):
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
-            limit: The number of results to return.
+            size: The number of results to return; if None or 0, uses the value of
+                `fetch_size` configured on the block.
             **execution_options: Additional options to pass to `connection.execute`.
 
         Returns:
@@ -261,7 +272,8 @@ class Database(DatabaseBlock):
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
         ) as result:
-            return result.fetchmany(size=limit)
+            size = size or self.fetch_size
+            return result.fetchmany(size=size)
 
     @sync_compatible
     async def fetch_all(
@@ -305,5 +317,26 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
+        ) as result:
+            return result
+
+    @sync_compatible
+    async def execute_many(
+        self,
+        operation: str,
+        seq_of_parameters: Optional[List[Dict[str, Any]]],
+        **execution_options: Dict[str, Any]
+    ) -> None:
+        """
+        Executes many operations on the database. This method is intended to be used
+        for operations that do not return data, such as INSERT, UPDATE, or DELETE.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            seq_of_parameters: The sequence of parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
+        """
+        async with self._async_or_sync_execute(
+            operation, seq_of_parameters, **execution_options
         ) as result:
             return result

@@ -267,7 +267,7 @@ class DatabaseCredentials(Block):
         return engine
 
     def get_connection(
-        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = False
+        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = True
     ) -> Union[Connection, AsyncConnection]:
         """
         Returns an authenticated connection that can be used to query from databases.
