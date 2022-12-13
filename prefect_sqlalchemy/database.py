@@ -201,20 +201,23 @@ class Database(DatabaseBlock):
     fetch_size: int = Field(
         default=1, description="The number of rows to fetch at a time."
     )
+    _engine: Optional[Union[AsyncEngine, Engine]] = None
 
     @contextlib.asynccontextmanager
     async def _async_or_sync_execute(
         self,
         operation: str,
         parameters: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> CursorResult:
         """
         Helper method to execute database queries or statements, either
         synchronously or asynchronously.
         """
         credentials = self.database_credentials
-        async with credentials._async_or_sync_connect() as connection:
+        async with credentials._async_or_sync_connect(
+            engine=self._engine, begin=True
+        ) as connection:
             result = connection.execute(
                 text(operation), parameters, execution_options=execution_options
             )
@@ -228,7 +231,7 @@ class Database(DatabaseBlock):
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> Tuple[Any]:
         """
         Fetch a single result from the database.
@@ -244,8 +247,9 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
-        ) as result:
-            return result.fetchone()
+        ) as cursor:
+            result = cursor.fetchone()
+        return result
 
     @sync_compatible
     async def fetch_many(
@@ -253,7 +257,7 @@ class Database(DatabaseBlock):
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
         size: Optional[int] = None,
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> List[Tuple[Any]]:
         """
         Fetch a limited number of results from the database.
@@ -271,16 +275,16 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
-        ) as result:
-            size = size or self.fetch_size
-            return result.fetchmany(size=size)
+        ) as cursor:
+            result = cursor.fetchmany(size=size)
+        return result
 
     @sync_compatible
     async def fetch_all(
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> List[Tuple[Any]]:
         """
         Fetch all results from the database.
@@ -296,15 +300,16 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
-        ) as result:
-            return result.fetchall()
+        ) as cursor:
+            result = cursor.fetchall()
+        return result
 
     @sync_compatible
     async def execute(
         self,
         operation: str,
         parameters: Optional[Dict[str, Any]] = None,
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> None:
         """
         Executes an operation on the database. This method is intended to be used
@@ -317,15 +322,15 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, parameters, **execution_options
-        ) as result:
-            return result
+        ):
+            pass
 
     @sync_compatible
     async def execute_many(
         self,
         operation: str,
         seq_of_parameters: Optional[List[Dict[str, Any]]],
-        **execution_options: Dict[str, Any]
+        **execution_options: Dict[str, Any],
     ) -> None:
         """
         Executes many operations on the database. This method is intended to be used
@@ -338,5 +343,46 @@ class Database(DatabaseBlock):
         """
         async with self._async_or_sync_execute(
             operation, seq_of_parameters, **execution_options
-        ) as result:
-            return result
+        ):
+            pass
+
+    async def __aenter__(self):
+        """
+        Start an asynchronous database engine upon entry.
+        """
+        if not self.database_credentials._async_supported:
+            database_driver = self.database_credentials.driver
+            raise ValueError(
+                f"{database_driver} does not support asynchronous execution. "
+                f"Please use the `with` syntax."
+            )
+        # no need to await here
+        self._engine = self.database_credentials.get_engine()
+        return self
+
+    async def __aexit__(self, *args):
+        """
+        Dispose the asynchronous database engine upon exit.
+        """
+        await self._engine.dispose()
+        self._engine = None
+
+    def __enter__(self):
+        """
+        Start an synchronous database engine upon entry.
+        """
+        if self.database_credentials._async_supported:
+            database_driver = self.database_credentials.driver
+            raise ValueError(
+                f"{database_driver} does not support synchronous execution. "
+                f"Please use the `async with` syntax."
+            )
+        self._engine = self.database_credentials.get_engine()
+        return self
+
+    def __exit__(self, *args):
+        """
+        Dispose the synchronous database engine upon exit.
+        """
+        self._engine.dispose()
+        self._engine = None

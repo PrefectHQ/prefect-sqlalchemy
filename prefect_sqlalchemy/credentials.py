@@ -314,23 +314,25 @@ class DatabaseCredentials(Block):
 
     @asynccontextmanager
     async def _async_or_sync_connect(
-        self,
+        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = True
     ) -> Generator[Union[AsyncConnection, Connection], None, None]:
         """
         Helper method to start an engine and a connection to the database, either
         synchronously or asynchronously. If an operation fails, it rollsback the
         entire transaction. Finally, upon completion, closes the engine.
         """
-        engine = self.get_engine()
         try:
             # a context manager nested within a context manager!
             if self._async_supported:
-                async with self.get_connection(engine=engine, begin=True) as connection:
+                async with self.get_connection(
+                    engine=engine, begin=begin
+                ) as connection:
                     yield connection
             else:
-                with self.get_connection(engine=engine, begin=True) as connection:
+                with self.get_connection(engine=engine, begin=begin) as connection:
                     yield connection
         finally:
-            dispose = engine.dispose()
-            if self._async_supported:
-                await dispose
+            if engine is not None:
+                dispose = engine.dispose()
+                if self._async_supported:
+                    await dispose
