@@ -329,7 +329,7 @@ class Database(DatabaseBlock):
     async def execute_many(
         self,
         operation: str,
-        seq_of_parameters: Optional[List[Dict[str, Any]]],
+        seq_of_parameters: List[Dict[str, Any]],
         **execution_options: Dict[str, Any],
     ) -> None:
         """
