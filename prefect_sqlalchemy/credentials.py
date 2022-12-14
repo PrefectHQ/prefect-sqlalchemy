@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
-from pydantic import AnyUrl, SecretStr, root_validator
+from pydantic import AnyUrl, SecretStr
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -239,7 +239,7 @@ class DatabaseCredentials(Block):
     class Config:
         """Configuration of pydantic."""
 
-        # Support serialization of the 'JsonPatch' type
+        # Support serialization of the 'URL' type
         arbitrary_types_allowed = True
         json_encoders = {URL: lambda u: u.render_as_string()}
 
@@ -247,17 +247,9 @@ class DatabaseCredentials(Block):
         """
         Convert to a dictionary.
         """
-        # Support serialization of the 'JsonPatch' type
+        # Support serialization of the 'URL' type
         d = super().dict(*args, **kwargs)
-        d["rendered_url"] = self.rendered_url.render_as_string()
+        d["rendered_url"] = SecretStr(
+            self.rendered_url.render_as_string(hide_password=False)
+        )
         return d
-
-    @root_validator(pre=True)
-    def cast_rendered_url_to_url_object(cls, values) -> URL:
-        """
-        Casts rendered_url to URL object.
-        """
-        rendered_url = values.get("rendered_url")
-        if isinstance(rendered_url, str):
-            values["rendered_url"] = make_url(rendered_url)
-        return values
