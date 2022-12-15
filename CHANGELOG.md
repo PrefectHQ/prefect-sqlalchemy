@@ -17,9 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-Serialization of `DatabaseCredentials.rendered_url` - [#36](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/36)
-
 ### Security
+
+## 0.2.1
+
+Released on December 15th, 2022.
+
+- Serialization of `DatabaseCredentials.rendered_url` - [#36](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/36)
 
 ## 0.2.0
 
