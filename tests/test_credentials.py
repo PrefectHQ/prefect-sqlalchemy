@@ -133,3 +133,28 @@ def test_sqlalchemy_credentials_sqlite(tmp_path):
         assert isinstance(engine, Engine)
 
     test_flow()
+
+
+def test_save_load_roundtrip():
+    """
+    This test was added because there was an issue saving rendered_url;
+    sqlalchemy.engine.url.URL was not JSON serializable.
+    """
+    credentials = DatabaseCredentials(
+        driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+        username="test-username",
+        password="test-password",
+        database="test-database",
+        host="localhost",
+        port="5678",
+    )
+    credentials.save("test-credentials", overwrite=True)
+    loaded_credentials = credentials.load("test-credentials")
+    assert loaded_credentials == credentials
+    assert loaded_credentials.driver == AsyncDriver.POSTGRESQL_ASYNCPG
+    assert loaded_credentials.username == "test-username"
+    assert loaded_credentials.password.get_secret_value() == "test-password"
+    assert loaded_credentials.database == "test-database"
+    assert loaded_credentials.host == "localhost"
+    assert loaded_credentials.port == "5678"
+    assert loaded_credentials.rendered_url == credentials.rendered_url

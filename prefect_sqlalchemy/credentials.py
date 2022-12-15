@@ -235,3 +235,21 @@ class DatabaseCredentials(Block):
         else:
             engine = create_engine(**engine_kwargs)
         return engine
+
+    class Config:
+        """Configuration of pydantic."""
+
+        # Support serialization of the 'URL' type
+        arbitrary_types_allowed = True
+        json_encoders = {URL: lambda u: u.render_as_string()}
+
+    def dict(self, *args, **kwargs) -> Dict:
+        """
+        Convert to a dictionary.
+        """
+        # Support serialization of the 'URL' type
+        d = super().dict(*args, **kwargs)
+        d["rendered_url"] = SecretStr(
+            self.rendered_url.render_as_string(hide_password=False)
+        )
+        return d
