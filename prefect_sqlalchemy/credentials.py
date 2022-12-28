@@ -1,15 +1,17 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
-from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, Dict, Generator, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from prefect.blocks.core import Block
+from prefect.utilities.asyncutils import run_sync_in_worker_thread, sync_compatible
+from prefect.utilities.hashing import hash_objects
 from pydantic import AnyUrl, Field, SecretStr
 from sqlalchemy.engine import Connection, Engine, create_engine
+from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.sql import text
 
 
 class AsyncDriver(Enum):
@@ -88,6 +90,16 @@ class DatabaseCredentials(Block):
     """
     Block used to manage authentication with a database.
 
+    Upon instantiating, a connection to the database is established
+    and maintained for the life of the object until the close method is called.
+
+    It is recommended to use this block as a context manager, which will automatically
+    close the connection and its cursors when the context is exited.
+
+    It is also recommended that this block is loaded and consumed within a single task
+    or flow because if the block is passed across separate tasks and flows,
+    the state of the block's connection and cursor could be lost.
+
     Attributes:
         driver: The driver name, e.g. "postgresql+asyncpg"
         database: The name of the database to use.
@@ -105,6 +117,7 @@ class DatabaseCredentials(Block):
             this alongside with other URL params as it will raise a `ValueError`.
         connect_args: The options which will be passed directly to the
             DBAPI's connect() method as additional keyword arguments.
+        fetch_size: The number of rows to fetch at a time.
 
     Example:
         Load stored database credentials:
@@ -112,6 +125,30 @@ class DatabaseCredentials(Block):
         from prefect_sqlalchemy import DatabaseCredentials
 
         database_block = DatabaseCredentials.load("BLOCK_NAME")
+        ```
+
+        Create table named customers and insert values; then fetch the first 10 rows.
+        ```python
+        from prefect import flow
+        from prefect_sqlalchemy import Database
+
+        @flow
+        def database_flow():
+            database = Database.load("database")
+            database.execute(
+                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
+            )
+            for i in range(1, 42):
+                database.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": f"Highway {i}"},
+                )
+            return database.fetch_many(
+                "SELECT * FROM customers WHERE name = :name;",
+                parameters={"name": "Marvin"},
+            )
+
+        database_flow()
         ```
     """
 
@@ -161,11 +198,37 @@ class DatabaseCredentials(Block):
             "method as additional keyword arguments."
         ),
     )
+    fetch_size: int = Field(
+        default=1, description="The number of rows to fetch at a time."
+    )
+
+    _engine: Optional[Union[AsyncEngine, Engine]] = None
+    _unique_results: Dict[str, CursorResult] = None
+
+    class Config:
+        """Configuration of pydantic."""
+
+        # Support serialization of the 'URL' type
+        arbitrary_types_allowed = True
+        json_encoders = {URL: lambda u: u.render_as_string()}
+
+    def dict(self, *args, **kwargs) -> Dict:
+        """
+        Convert to a dictionary.
+        """
+        # Support serialization of the 'URL' type
+        d = super().dict(*args, **kwargs)
+        d["rendered_url"] = SecretStr(
+            self.rendered_url.render_as_string(hide_password=False)
+        )
+        return d
 
     def block_initialization(self):
         """
         Initializes the engine.
         """
+        super().block_initialization()
+
         if isinstance(self.driver, AsyncDriver):
             drivername = self.driver.value
             self._async_supported = True
@@ -210,10 +273,24 @@ class DatabaseCredentials(Block):
                 )
             self.rendered_url = make_url(str(self.url))
 
+        if self._egnine is None:
+            self._start_engine()
+
+        if self._unique_results is None:
+            self._unique_results = {}
+
+    def _start_engine(self):
+        """
+        Starts SQLAlchemy database engine.
+        """
+        self._engine = self.get_engine()
+
     def get_engine(self) -> Union[Engine, AsyncEngine]:
         """
         Returns an authenticated engine that can be
         used to query from databases.
+
+        If an existing engine exists, return that one.
 
         Returns:
             The authenticated SQLAlchemy Engine / AsyncEngine.
@@ -255,10 +332,12 @@ class DatabaseCredentials(Block):
             sqlalchemy_credentials_flow()
             ```
         """
+        if self._engine is not None:
+            return self._engine
+
         engine_kwargs = dict(
             url=self.rendered_url,
             connect_args=self.connect_args or {},
-            poolclass=NullPool,
         )
         if self._async_supported:
             engine = create_async_engine(**engine_kwargs)
@@ -266,15 +345,10 @@ class DatabaseCredentials(Block):
             engine = create_engine(**engine_kwargs)
         return engine
 
-    def get_connection(
-        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = True
-    ) -> Union[Connection, AsyncConnection]:
+    def get_connection(self, begin: bool = True) -> Union[Connection, AsyncConnection]:
         """
         Returns an authenticated connection that can be used to query from databases.
-
         Args:
-            engine: A SQLAlchemy Engine / AsyncEngine to use for the connection;
-                if not provided, a new engine will be created.
             begin: Whether to begin a transaction on the connection; if True, if
                 any operations fail, the entire transaction will be rolled back.
 
@@ -286,7 +360,6 @@ class DatabaseCredentials(Block):
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials
-
             @flow
             def get_connection_flow():
                 database_credentials = DatabaseCredentials.load("BLOCK_NAME")
@@ -298,7 +371,6 @@ class DatabaseCredentials(Block):
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials
-
             @flow
             def get_connection_flow():
                 database_credentials = DatabaseCredentials.load("BLOCK_NAME")
@@ -306,33 +378,264 @@ class DatabaseCredentials(Block):
                     await connection.execute("SELECT * FROM table LIMIT 1;")
             ```
         """  # noqa: E501
-        engine = engine or self.get_engine()
+        engine = self.get_engine()
         if begin:
             return engine.begin()
         else:
             return engine.connect()
 
-    @asynccontextmanager
-    async def _async_or_sync_connect(
-        self, engine: Optional[Union[Engine, AsyncEngine]] = None, begin: bool = True
-    ) -> Generator[Union[AsyncConnection, Connection], None, None]:
+    async def _async_execute(
+        self, *execute_args: Tuple[Any], **execute_kwargs: Dict[str, Any]
+    ) -> CursorResult:
         """
-        Helper method to start an engine and a connection to the database, either
-        synchronously or asynchronously. If an operation fails, it rollsback the
-        entire transaction. Finally, upon completion, closes the engine.
+        Execute the statement asynchronously.
+        """
+        connection = self._engine.connect()
+
+        execution_options = execute_kwargs.pop("execution_options")
+        connection.execution_options(**execution_options)  # modified in place
+
+        if self._async_supported:
+            result_set = await connection.execute(*execute_args, **execute_kwargs)
+        else:
+            result_set = await run_sync_in_worker_thread(
+                connection.execute, *execute_args, **execute_kwargs
+            )
+        return result_set
+
+    async def _get_result_set(
+        self, *execute_args: Tuple[Any], **execute_kwargs: Dict[str, Any]
+    ) -> CursorResult:
+        """
+        Returns a new or existing result set based on whether the inputs
+        are unique.
+
+        Args:
+            *execute_args: Args to pass to execute.
+            **execute_kwargs: Keyword args to pass to execute.
+
+        Returns:
+            The result set from the operation.
+        """  # noqa: E501
+        input_hash = hash_objects(*execute_args, **execute_kwargs)
+        assert input_hash is not None, (
+            "We were not able to hash your inputs, "
+            "which resulted in an unexpected data return; "
+            "please open an issue with a reproducible example."
+        )
+        if input_hash not in self._unique_results.keys():
+            result_set = self._async_execute(*execute_args, **execute_kwargs)
+            self._unique_results[input_hash] = result_set
+        else:
+            result_set = self._unique_results[input_hash]
+        return result_set
+
+    def reset_connections(self) -> None:
+        """
+        Tries to close all opened connections and their results.
+        """
+        input_hashes = tuple(self._unique_results.keys())
+        for input_hash in input_hashes:
+            connection = self._unique_results.pop(input_hash).connection
+            try:
+                connection.close()
+            except Exception as exc:
+                self.logger.warning(
+                    f"Failed to close connection for input hash {input_hash!r}: {exc}"
+                )
+
+    @sync_compatible
+    async def fetch_one(
+        self,
+        operation: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any],
+    ) -> Tuple[Any]:
+        """
+        Fetch a single result from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        inputs = dict(
+            statement=text(operation),
+            parameters=parameters,
+            execution_options=execution_options,
+        )
+        result_set = await self._get_result_set(**inputs)
+        row = result_set.fetchone()
+        return row
+
+    @sync_compatible
+    async def fetch_many(
+        self,
+        operation: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        size: Optional[int] = None,
+        **execution_options: Dict[str, Any],
+    ) -> List[Tuple[Any]]:
+        """
+        Fetch a limited number of results from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+            size: The number of results to return; if None or 0, uses the value of
+                `fetch_size` configured on the block.
+            **execution_options: Additional options to pass to `connection.execute`.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        inputs = dict(
+            statement=text(operation),
+            parameters=parameters,
+            execution_options=execution_options,
+        )
+        result_set = await self._get_result_set(**inputs)
+        size = size or self.fetch_size
+        rows = result_set.fetchmany(size=size)
+        return rows
+
+    @sync_compatible
+    async def fetch_all(
+        self,
+        operation: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any],
+    ) -> List[Tuple[Any]]:
+        """
+        Fetch all results from the database.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
+
+        Returns:
+            A list of tuples containing the data returned by the database,
+                where each row is a tuple and each column is a value in the tuple.
+        """
+        inputs = dict(
+            statement=text(operation),
+            parameters=parameters,
+            execution_options=execution_options,
+        )
+        result_set = await self._get_result_set(**inputs)
+        rows = result_set.fetchall()
+        return rows
+
+    @sync_compatible
+    async def execute(
+        self,
+        operation: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        **execution_options: Dict[str, Any],
+    ) -> None:
+        """
+        Executes an operation on the database. This method is intended to be used
+        for operations that do not return data, such as INSERT, UPDATE, or DELETE.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            parameters: The parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
+        """
+        inputs = dict(
+            statement=text(operation),
+            parameters=parameters,
+            execution_options=execution_options,
+        )
+        await self._async_execute(**inputs)
+
+    @sync_compatible
+    async def execute_many(
+        self,
+        operation: str,
+        seq_of_parameters: Optional[List[Dict[str, Any]]],
+        **execution_options: Dict[str, Any],
+    ) -> None:
+        """
+        Executes many operations on the database. This method is intended to be used
+        for operations that do not return data, such as INSERT, UPDATE, or DELETE.
+
+        Args:
+            operation: The SQL query or other operation to be executed.
+            seq_of_parameters: The sequence of parameters for the operation.
+            **execution_options: Additional options to pass to `connection.execute`.
+        """
+        await self._async_execute(
+            text(operation),
+            seq_of_parameters,  # multiparams has to be positional
+            execution_options=execution_options,
+        )
+
+    @sync_compatible
+    async def close(self):
+        """
+        Closes connection and its cursors.
         """
         try:
-            # a context manager nested within a context manager!
-            if self._async_supported:
-                async with self.get_connection(
-                    engine=engine, begin=begin
-                ) as connection:
-                    yield connection
-            else:
-                with self.get_connection(engine=engine, begin=begin) as connection:
-                    yield connection
+            self.reset_connections()
         finally:
-            if engine is not None:
-                dispose = engine.dispose()
+            if self._engine is not None:
+                dispose = self._engine.dispose()
                 if self._async_supported:
                     await dispose
+                self._engine = None
+
+    async def __aenter__(self):
+        """
+        Start an asynchronous database engine upon entry.
+        """
+        if not self._async_supported:
+            raise ValueError(
+                f"{self.driver} does not support asynchronous execution. "
+                f"Please use the `with` syntax."
+            )
+        # no need to await here
+        self._engine = self.get_engine()
+        return self
+
+    async def __aexit__(self, *args):
+        """
+        Dispose the asynchronous database engine upon exit.
+        """
+        await self.close()
+
+    def __enter__(self):
+        """
+        Start an synchronous database engine upon entry.
+        """
+        if self._async_supported:
+            raise ValueError(
+                f"{self.driver} does not support synchronous execution. "
+                f"Please use the `async with` syntax."
+            )
+        self._engine = self.get_engine()
+        return self
+
+    def __exit__(self, *args):
+        """
+        Dispose the synchronous database engine upon exit.
+        """
+        self.close()
+
+    def __getstate__(self):
+        """Allows the block to be pickleable."""
+        data = self.__dict__.copy()
+        data.update({k: None for k in {"_engine", "_unique_results"}})
+        return data
+
+    def __setstate__(self, data: dict):
+        """Upon loading back, restart the engine and results."""
+        self.__dict__.update(data)
+        self._unique_results = {}
+        self.get_engine()
