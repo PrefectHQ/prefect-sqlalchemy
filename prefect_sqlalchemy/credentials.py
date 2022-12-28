@@ -488,6 +488,11 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         Fetch a single result from the database.
 
+        Repeated calls using the same inputs to *any* of the fetch methods of this
+        block will skip executing the operation again, and instead,
+        return the next set of results from the previous execution,
+        until the reset_cursors method is called.
+
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
@@ -516,6 +521,11 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     ) -> List[Tuple[Any]]:
         """
         Fetch a limited number of results from the database.
+
+        Repeated calls using the same inputs to *any* of the fetch methods of this
+        block will skip executing the operation again, and instead,
+        return the next set of results from the previous execution,
+        until the reset_cursors method is called.
 
         Args:
             operation: The SQL query or other operation to be executed.
@@ -548,6 +558,11 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         Fetch all results from the database.
 
+        Repeated calls using the same inputs to *any* of the fetch methods of this
+        block will skip executing the operation again, and instead,
+        return the next set of results from the previous execution,
+        until the reset_cursors method is called.
+
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
@@ -577,6 +592,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Executes an operation on the database. This method is intended to be used
         for operations that do not return data, such as INSERT, UPDATE, or DELETE.
 
+        Unlike the fetch methods, this method will always execute the operation
+        upon calling.
+
         Args:
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
@@ -600,6 +618,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         Executes many operations on the database. This method is intended to be used
         for operations that do not return data, such as INSERT, UPDATE, or DELETE.
+
+        Unlike the fetch methods, this method will always execute the operation
+        upon calling.
 
         Args:
             operation: The SQL query or other operation to be executed.
