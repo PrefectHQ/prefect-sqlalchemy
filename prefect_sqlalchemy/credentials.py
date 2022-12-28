@@ -121,21 +121,23 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         fetch_size: The number of rows to fetch at a time.
 
     Example:
-        Load stored database credentials:
+        Load stored database credentials and use in context manager:
         ```python
         from prefect_sqlalchemy import DatabaseCredentials
 
         database_block = DatabaseCredentials.load("BLOCK_NAME")
+        with database_block:
+            ...
         ```
 
         Create table named customers and insert values; then fetch the first 10 rows.
         ```python
-        from prefect import flow
-        from prefect_sqlalchemy import Database
+        from prefect_sqlalchemy import DatabaseCredentials, SyncDriver
 
-        @flow
-        def database_flow():
-            database = Database.load("database")
+        with DatabaseCredentials(
+            driver=SyncDriver.SQLITE_PYSQLITE,
+            database="prefect.db"
+        ) as database:
             database.execute(
                 "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
             )
@@ -144,12 +146,12 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
                     parameters={"name": "Marvin", "address": f"Highway {i}"},
                 )
-            return database.fetch_many(
+            results = database.fetch_many(
                 "SELECT * FROM customers WHERE name = :name;",
                 parameters={"name": "Marvin"},
+                size=10
             )
-
-        database_flow()
+        print(results)
         ```
     """
 
@@ -480,6 +482,17 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     def reset_connections(self) -> None:
         """
         Tries to close all opened connections and their results.
+
+        Examples:
+            Resets connections so fetch* methods return new results.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                results = database.fetch_one("SELECT * FROM customers")
+                database.reset_connections()
+                results = database.fetch_one("SELECT * FROM customers")
+            ```
         """
         if self._driver_is_async:
             raise RuntimeError(
@@ -492,6 +505,21 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     async def reset_async_connections(self) -> None:
         """
         Tries to close all opened connections and their results.
+
+        Examples:
+            Resets connections so fetch* methods return new results.
+            ```python
+            import asyncio
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            async def example_run():
+                async with DatabaseCredentials.load("MY_BLOCK") as database:
+                    results = await database.fetch_one("SELECT * FROM customers")
+                    await database.reset_async_connections()
+                    results = await database.fetch_one("SELECT * FROM customers")
+
+            asyncio.run(example_run())
+            ```
         """
         if not self._driver_is_async:
             raise RuntimeError(
@@ -524,7 +552,28 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
-        """
+
+        Examples:
+            Create a table, insert three rows into it, and fetch a row repeatedly.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
+                database.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Space"},
+                        {"name": "Me", "address": "Myway 88"},
+                    ],
+                )
+                results = True
+                while results:
+                    results = database.fetch_one("SELECT * FROM customers")
+                    print(results)
+            ```
+        """  # noqa
         result_set = await self._get_result_set(
             text(operation), parameters, execution_options=execution_options
         )
@@ -557,7 +606,28 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
-        """
+
+        Examples:
+            Create a table, insert three rows into it, and fetch two rows repeatedly.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
+                database.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Space"},
+                        {"name": "Me", "address": "Myway 88"},
+                    ],
+                )
+                results = database.fetch_many("SELECT * FROM customers", size=2)
+                print(results)
+                results = database.fetch_many("SELECT * FROM customers", size=2)
+                print(results)
+            ```
+        """  # noqa
         result_set = await self._get_result_set(
             text(operation), parameters, execution_options=execution_options
         )
@@ -588,7 +658,25 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Returns:
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
-        """
+
+        Examples:
+            Create a table, insert three rows into it, and fetch all where name is 'Me'.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
+                database.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Space"},
+                        {"name": "Me", "address": "Myway 88"},
+                    ],
+                )
+                results = database.fetch_all("SELECT * FROM customers WHERE name = :name", parameters={"name": "Me"})
+            ```
+        """  # noqa
         result_set = await self._get_result_set(
             text(operation), parameters, execution_options=execution_options
         )
@@ -613,7 +701,20 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             operation: The SQL query or other operation to be executed.
             parameters: The parameters for the operation.
             **execution_options: Options to pass to `Connection.execution_options`.
-        """
+
+        Examples:
+            Create a table and insert one row into it.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
+                database.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": "Highway 42"},
+                )
+            ```
+        """  # noqa
         async with self._manage_connection(begin=False) as connection:
             await self._async_sync_execute(
                 connection,
@@ -640,7 +741,24 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             operation: The SQL query or other operation to be executed.
             seq_of_parameters: The sequence of parameters for the operation.
             **execution_options: Options to pass to `Connection.execution_options`.
-        """
+
+        Examples:
+            Create a table and insert two rows into it.
+            ```python
+            from prefect_sqlalchemy import DatabaseCredentials
+
+            with DatabaseCredentials.load("MY_BLOCK") as database:
+                database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
+                database.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Space"},
+                        {"name": "Me", "address": "Myway 88"},
+                    ],
+                )
+            ```
+        """  # noqa
         async with self._manage_connection(begin=False) as connection:
             await self._async_sync_execute(
                 connection,
