@@ -80,7 +80,7 @@ class SQLAlchemyConnectionMock:
 @pytest.fixture()
 def sqlalchemy_credentials_async():
     sqlalchemy_credentials_mock = MagicMock()
-    sqlalchemy_credentials_mock._async_supported = True
+    sqlalchemy_credentials_mock._driver_is_async = True
     sqlalchemy_credentials_mock.get_engine.return_value = SQLAlchemyAsyncEngineMock()
     return sqlalchemy_credentials_mock
 
@@ -88,7 +88,7 @@ def sqlalchemy_credentials_async():
 @pytest.fixture()
 def sqlalchemy_credentials_sync():
     sqlalchemy_credentials_mock = MagicMock()
-    sqlalchemy_credentials_mock._async_supported = False
+    sqlalchemy_credentials_mock._driver_is_async = False
     sqlalchemy_credentials_mock.get_engine.return_value = SQLAlchemyEngineMock()
     return sqlalchemy_credentials_mock
 

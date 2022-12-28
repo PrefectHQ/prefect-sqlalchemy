@@ -96,7 +96,7 @@ async def sqlalchemy_execute(
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
     engine = sqlalchemy_credentials.get_engine()
-    async_supported = sqlalchemy_credentials._async_supported
+    async_supported = sqlalchemy_credentials._driver_is_async
     async with _connect(engine, async_supported) as connection:
         await _execute(connection, statement, params, async_supported)
 
@@ -147,7 +147,7 @@ async def sqlalchemy_query(
         ```
     """
     engine = sqlalchemy_credentials.get_engine()
-    async_supported = sqlalchemy_credentials._async_supported
+    async_supported = sqlalchemy_credentials._driver_is_async
     async with _connect(engine, async_supported) as connection:
         result = await _execute(connection, query, params, async_supported)
         # some databases, like sqlite, require a connection still open to fetch!
