@@ -204,8 +204,8 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     )
 
     _engine: Optional[Union[AsyncEngine, Engine]] = None
-    _unique_results: Dict[str, CursorResult] = None
     _exit_stack: Union[ExitStack, AsyncExitStack] = None
+    _unique_results: Dict[str, CursorResult] = None
 
     class Config:
         """Configuration of pydantic."""
@@ -278,19 +278,23 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         if self._engine is None:
             self._start_engine()
 
+        if self._exit_stack is None:
+            self._start_exit_stack()
+
         if self._unique_results is None:
             self._unique_results = {}
-
-        if self._exit_stack is None:
-            self._exit_stack = (
-                AsyncExitStack() if self._driver_is_async else ExitStack()
-            )
 
     def _start_engine(self):
         """
         Starts SQLAlchemy database engine.
         """
         self._engine = self.get_engine()
+
+    def _start_exit_stack(self):
+        """
+        Starts an AsyncExitStack or ExitStack depending on whether driver is async.
+        """
+        self._exit_stack = AsyncExitStack() if self._driver_is_async else ExitStack()
 
     def get_engine(self) -> Union[Engine, AsyncEngine]:
         """
@@ -409,6 +413,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
 
         if self._driver_is_async:
             result_set = await result_set
+            await connection.commit()  # very important
         return result_set
 
     @asynccontextmanager
@@ -458,10 +463,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             result_set = self._unique_results[input_hash]
         return result_set
 
-    @sync_compatible
-    async def reset_connections(self) -> None:
+    def _reset_cursor_results(self) -> None:
         """
-        Tries to close all opened connections and their results.
+        Closes all the existing cursor results.
         """
         input_hashes = tuple(self._unique_results.keys())
         for input_hash in input_hashes:
@@ -473,10 +477,29 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                     f"Failed to close connection for input hash {input_hash!r}: {exc}"
                 )
 
+    def reset_connections(self) -> None:
+        """
+        Tries to close all opened connections and their results.
+        """
         if self._driver_is_async:
-            await self._exit_stack.aclose()
-        else:
-            self._exit_stack.close()
+            raise ValueError(
+                f"{self.driver} does not have synchronous connections. "
+                f"Please use the `reset_async_connections` method instead."
+            )
+        self._reset_cursor_results()
+        self._exit_stack.close()
+
+    async def reset_async_connections(self) -> None:
+        """
+        Tries to close all opened connections and their results.
+        """
+        if not self._driver_is_async:
+            raise ValueError(
+                f"{self.driver} does not have asynchronous connections. "
+                f"Please use the `reset_connections` method instead."
+            )
+        self._reset_cursor_results()
+        await self._exit_stack.aclose()
 
     @sync_compatible
     async def fetch_one(
@@ -635,20 +658,6 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                 execution_options=execution_options,
             )
 
-    @sync_compatible
-    async def close(self):
-        """
-        Closes connection and its cursors.
-        """
-        try:
-            await self.reset_connections()
-        finally:
-            if self._engine is not None:
-                dispose = self._engine.dispose()
-                if self._driver_is_async:
-                    await dispose
-                self._engine = None
-
     async def __aenter__(self):
         """
         Start an asynchronous database engine upon entry.
@@ -666,7 +675,23 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         Dispose the asynchronous database engine upon exit.
         """
-        await self.close()
+        await self.aclose()
+
+    async def aclose(self):
+        """
+        Closes async connections and its cursors.
+        """
+        if not self._driver_is_async:
+            raise ValueError(
+                f"{self.driver} is not asynchronous. "
+                f"Please use the `close` method instead."
+            )
+        try:
+            await self.reset_async_connections()
+        finally:
+            if self._engine is not None:
+                await self._engine.dispose()
+                self._engine = None
 
     def __enter__(self):
         """
@@ -686,14 +711,32 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         self.close()
 
+    def close(self):
+        """
+        Closes sync connections and its cursors.
+        """
+        if self._driver_is_async:
+            raise ValueError(
+                f"{self.driver} is not synchronous. "
+                f"Please use the `aclose` method instead."
+            )
+
+        try:
+            self.reset_connections()
+        finally:
+            if self._engine is not None:
+                self._engine.dispose()
+                self._engine = None
+
     def __getstate__(self):
         """Allows the block to be pickleable."""
         data = self.__dict__.copy()
-        data.update({k: None for k in {"_engine", "_unique_results"}})
+        data.update({k: None for k in {"_engine", "_unique_results", "_exit_stack"}})
         return data
 
     def __setstate__(self, data: dict):
         """Upon loading back, restart the engine and results."""
         self.__dict__.update(data)
         self._unique_results = {}
+        self._start_exit_stack()
         self._start_engine()
