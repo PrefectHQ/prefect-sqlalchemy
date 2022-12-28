@@ -482,7 +482,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Tries to close all opened connections and their results.
         """
         if self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} does not have synchronous connections. "
                 f"Please use the `reset_async_connections` method instead."
             )
@@ -494,7 +494,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Tries to close all opened connections and their results.
         """
         if not self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} does not have asynchronous connections. "
                 f"Please use the `reset_connections` method instead."
             )
@@ -525,12 +525,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        inputs = dict(
-            statement=text(operation),
-            parameters=parameters,
-            execution_options=execution_options,
+        result_set = await self._get_result_set(
+            text(operation), parameters, execution_options=execution_options
         )
-        result_set = await self._get_result_set(**inputs)
         row = result_set.fetchone()
         return row
 
@@ -561,12 +558,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        inputs = dict(
-            statement=text(operation),
-            parameters=parameters,
-            execution_options=execution_options,
+        result_set = await self._get_result_set(
+            text(operation), parameters, execution_options=execution_options
         )
-        result_set = await self._get_result_set(**inputs)
         size = size or self.fetch_size
         rows = result_set.fetchmany(size=size)
         return rows
@@ -595,12 +589,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             A list of tuples containing the data returned by the database,
                 where each row is a tuple and each column is a value in the tuple.
         """
-        inputs = dict(
-            statement=text(operation),
-            parameters=parameters,
-            execution_options=execution_options,
+        result_set = await self._get_result_set(
+            text(operation), parameters, execution_options=execution_options
         )
-        result_set = await self._get_result_set(**inputs)
         rows = result_set.fetchall()
         return rows
 
@@ -663,7 +654,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Start an asynchronous database engine upon entry.
         """
         if not self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} does not support asynchronous execution. "
                 f"Please use the `with` syntax."
             )
@@ -682,7 +673,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Closes async connections and its cursors.
         """
         if not self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} is not asynchronous. "
                 f"Please use the `close` method instead."
             )
@@ -698,7 +689,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Start an synchronous database engine upon entry.
         """
         if self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} does not support synchronous execution. "
                 f"Please use the `async with` syntax."
             )
@@ -716,7 +707,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Closes sync connections and its cursors.
         """
         if self._driver_is_async:
-            raise ValueError(
+            raise RuntimeError(
                 f"{self.driver} is not synchronous. "
                 f"Please use the `aclose` method instead."
             )
@@ -731,12 +722,12 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     def __getstate__(self):
         """Allows the block to be pickleable."""
         data = self.__dict__.copy()
-        data.update({k: None for k in {"_engine", "_unique_results", "_exit_stack"}})
+        data.update({k: None for k in {"_engine", "_exit_stack", "_unique_results"}})
         return data
 
     def __setstate__(self, data: dict):
         """Upon loading back, restart the engine and results."""
         self.__dict__.update(data)
-        self._unique_results = {}
-        self._start_exit_stack()
         self._start_engine()
+        self._start_exit_stack()
+        self._unique_results = {}
