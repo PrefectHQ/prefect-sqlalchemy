@@ -209,11 +209,15 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
 
         Create table named customers and insert values; then fetch the first 10 rows.
         ```python
-        from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver
+        from prefect_sqlalchemy import (
+            SqlAlchemyConnector, SyncDriver, ConnectionComponents
+        )
 
         with SqlAlchemyConnector(
-            driver=SyncDriver.SQLITE_PYSQLITE,
-            database="prefect.db"
+            connection_info=ConnectionComponents(
+                driver=SyncDriver.SQLITE_PYSQLITE,
+                database="prefect.db"
+            )
         ) as database:
             database.execute(
                 "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
@@ -332,15 +336,19 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
             Create an asynchronous engine to PostgreSQL using URL params.
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver
+            from prefect_sqlalchemy import (
+                SqlAlchemyConnector, ConnectionComponents, AsyncDriver
+            )
 
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = SqlAlchemyConnector(
-                    driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-                    username="prefect",
-                    password="prefect_password",
-                    database="postgres"
+                connection_info=ConnectionComponents(
+                        driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+                        username="prefect",
+                        password="prefect_password",
+                        database="postgres"
+                    )
                 )
                 print(sqlalchemy_credentials.get_engine())
 

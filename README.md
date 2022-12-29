@@ -52,11 +52,13 @@ Note, to use the `load` method on Blocks, you must already have a block document
 Use `SqlAlchemyConnector` as a context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
 
 ```python
-from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver
+from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver, ConnectionComponents
 
 with SqlAlchemyConnector(
-    driver=SyncDriver.SQLITE_PYSQLITE,
-    database="my.db",
+    connection_info=ConnectionComponents(
+        driver=SyncDriver.SQLITE_PYSQLITE,
+        database="my.db"
+    ),
 ) as database_credentials:
     database_credentials.execute(
         "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
@@ -82,11 +84,13 @@ with SqlAlchemyConnector(
 Use `SqlAlchemyConnector` as an async context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
 
 ```python
-from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver
+from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver, ConnectionComponents
 
 async with SqlAlchemyConnector(
-    driver=AsyncDriver.SQLITE_AIOSQLITE,
-    database="test.db",
+    connection_info=ConnectionComponents(
+        driver=AsyncDriver.SQLITE_AIOSQLITE,
+        database="test.db"
+    ),
 ) as database_credentials:
     await database_credentials.execute(
         "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"

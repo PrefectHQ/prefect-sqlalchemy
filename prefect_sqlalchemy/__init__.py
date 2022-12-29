@@ -5,5 +5,6 @@ from .credentials import (  # noqa
     AsyncDriver,
     SyncDriver,
 )
+from .database import SqlAlchemyConnector  # noqa
 
 __version__ = _version.get_versions()["version"]
