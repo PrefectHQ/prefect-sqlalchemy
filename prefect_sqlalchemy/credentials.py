@@ -1,17 +1,20 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
+import warnings
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from prefect.blocks.abstract import CredentialsBlock, DatabaseBlock
+from prefect.blocks.core import Block
 from prefect.utilities.asyncutils import sync_compatible
 from prefect.utilities.hashing import hash_objects
-from pydantic import AnyUrl, Field, SecretStr
+from pydantic import AnyUrl, BaseModel, Field, SecretStr
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
+from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 
 
@@ -87,20 +90,9 @@ class SyncDriver(Enum):
     MSSQL_PYMSSQL = "mssql+pymssql"
 
 
-class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
+class DatabaseCredentials(Block):
     """
     Block used to manage authentication with a database.
-
-    Upon instantiating, an engine is created and maintained for the life of
-    the object until the close method is called.
-
-    It is recommended to use this block as a context manager, which will automatically
-    close the engine and its connections when the context is exited.
-
-    It is also recommended that this block is loaded and consumed within a single task
-    or flow because if the block is passed across separate tasks and flows,
-    the state of the block's connection and cursor could be lost.
-
     Attributes:
         driver: The driver name, e.g. "postgresql+asyncpg"
         database: The name of the database to use.
@@ -118,121 +110,36 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             this alongside with other URL params as it will raise a `ValueError`.
         connect_args: The options which will be passed directly to the
             DBAPI's connect() method as additional keyword arguments.
-        fetch_size: The number of rows to fetch at a time.
-
     Example:
-        Load stored database credentials and use in context manager:
+        Load stored database credentials:
         ```python
         from prefect_sqlalchemy import DatabaseCredentials
-
         database_block = DatabaseCredentials.load("BLOCK_NAME")
-        with database_block:
-            ...
-        ```
-
-        Create table named customers and insert values; then fetch the first 10 rows.
-        ```python
-        from prefect_sqlalchemy import DatabaseCredentials, SyncDriver
-
-        with DatabaseCredentials(
-            driver=SyncDriver.SQLITE_PYSQLITE,
-            database="prefect.db"
-        ) as database:
-            database.execute(
-                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
-            )
-            for i in range(1, 42):
-                database.execute(
-                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
-                    parameters={"name": "Marvin", "address": f"Highway {i}"},
-                )
-            results = database.fetch_many(
-                "SELECT * FROM customers WHERE name = :name;",
-                parameters={"name": "Marvin"},
-                size=10
-            )
-        print(results)
         ```
     """
 
     _block_type_name = "Database Credentials"
     _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
-    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = Field(
-        default=None, description="The driver name to use."
-    )
-    username: Optional[str] = Field(
-        default=None, description="The user name used to authenticate."
-    )
-    password: Optional[SecretStr] = Field(
-        default=None, description="The password used to authenticate."
-    )
-    database: Optional[str] = Field(
-        default=None, description="The name of the database to use."
-    )
-    host: Optional[str] = Field(
-        default=None, description="The host address of the database."
-    )
-    port: Optional[str] = Field(
-        default=None, description="The port to connect to the database."
-    )
-    query: Optional[Dict[str, str]] = Field(
-        default=None,
-        description=(
-            "A dictionary of string keys to string values to be passed to the dialect "
-            "and/or the DBAPI upon connect. To specify non-string parameters to a "
-            "Python DBAPI directly, use connect_args."
-        ),
-    )
-    url: Optional[AnyUrl] = Field(
-        default=None,
-        description=(
-            "Manually create and provide a URL to create the engine, this is useful "
-            "for external dialects, e.g. Snowflake, because some of the params, "
-            "such as 'warehouse', is not directly supported in the vanilla "
-            "`sqlalchemy.engine.URL.create` method; do not provide this "
-            "alongside with other URL params as it will raise a `ValueError`."
-        ),
-    )
-    connect_args: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description=(
-            "The options which will be passed directly to the DBAPI's connect() "
-            "method as additional keyword arguments."
-        ),
-    )
-    fetch_size: int = Field(
-        default=1, description="The number of rows to fetch at a time."
-    )
-
-    _engine: Optional[Union[AsyncEngine, Engine]] = None
-    _exit_stack: Union[ExitStack, AsyncExitStack] = None
-    _unique_results: Dict[str, CursorResult] = None
-
-    class Config:
-        """Configuration of pydantic."""
-
-        # Support serialization of the 'URL' type
-        arbitrary_types_allowed = True
-        json_encoders = {URL: lambda u: u.render_as_string()}
-
-    def dict(self, *args, **kwargs) -> Dict:
-        """
-        Convert to a dictionary.
-        """
-        # Support serialization of the 'URL' type
-        d = super().dict(*args, **kwargs)
-        d["rendered_url"] = SecretStr(
-            self.rendered_url.render_as_string(hide_password=False)
-        )
-        return d
+    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
+    username: Optional[str] = None
+    password: Optional[SecretStr] = None
+    database: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[str] = None
+    query: Optional[Dict[str, str]] = None
+    url: Optional[AnyUrl] = None
+    connect_args: Optional[Dict[str, Any]] = None
 
     def block_initialization(self):
         """
         Initializes the engine.
         """
-        super().block_initialization()
-
+        warnings.warn(
+            "DatabaseCredentials is now deprecated and will be removed March 2023; "
+            "please use SqlAlchemyConnector instead.",
+            DeprecationWarning,
+        )
         if isinstance(self.driver, AsyncDriver):
             drivername = self.driver.value
             self._driver_is_async = True
@@ -277,6 +184,234 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                 )
             self.rendered_url = make_url(str(self.url))
 
+    def get_engine(self) -> Union["Connection", "AsyncConnection"]:
+        """
+        Returns an authenticated engine that can be
+        used to query from databases.
+        Returns:
+            The authenticated SQLAlchemy Connection / AsyncConnection.
+        Examples:
+            Create an asynchronous engine to PostgreSQL using URL params.
+            ```python
+            from prefect import flow
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+            @flow
+            def sqlalchemy_credentials_flow():
+                sqlalchemy_credentials = DatabaseCredentials(
+                    driver=AsyncDriver.POSTGRESQL_ASYNCPG,
+                    username="prefect",
+                    password="prefect_password",
+                    database="postgres"
+                )
+                print(sqlalchemy_credentials.get_engine())
+            sqlalchemy_credentials_flow()
+            ```
+            Create a synchronous engine to Snowflake using the `url` kwarg.
+            ```python
+            from prefect import flow
+            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+            @flow
+            def sqlalchemy_credentials_flow():
+                url = (
+                    "snowflake://<user_login_name>:<password>"
+                    "@<account_identifier>/<database_name>"
+                    "?warehouse=<warehouse_name>"
+                )
+                sqlalchemy_credentials = DatabaseCredentials(url=url)
+                print(sqlalchemy_credentials.get_engine())
+            sqlalchemy_credentials_flow()
+            ```
+        """
+        engine_kwargs = dict(
+            url=self.rendered_url,
+            connect_args=self.connect_args or {},
+            poolclass=NullPool,
+        )
+        if self._driver_is_async:
+            engine = create_async_engine(**engine_kwargs)
+        else:
+            engine = create_engine(**engine_kwargs)
+        return engine
+
+    class Config:
+        """Configuration of pydantic."""
+
+        # Support serialization of the 'URL' type
+        arbitrary_types_allowed = True
+        json_encoders = {URL: lambda u: u.render_as_string()}
+
+    def dict(self, *args, **kwargs) -> Dict:
+        """
+        Convert to a dictionary.
+        """
+        # Support serialization of the 'URL' type
+        d = super().dict(*args, **kwargs)
+        d["rendered_url"] = SecretStr(
+            self.rendered_url.render_as_string(hide_password=False)
+        )
+        return d
+
+
+class SqlAlchemyUrl(BaseModel):
+    driver: Union[AsyncDriver, SyncDriver, str] = Field(
+        default=..., description="The driver name to use."
+    )
+    database: str = Field(default=..., description="The name of the database to use.")
+    username: Optional[str] = Field(
+        default=None, description="The user name used to authenticate."
+    )
+    password: Optional[SecretStr] = Field(
+        default=None, description="The password used to authenticate."
+    )
+    host: Optional[str] = Field(
+        default=None, description="The host address of the database."
+    )
+    port: Optional[str] = Field(
+        default=None, description="The port to connect to the database."
+    )
+    query: Optional[Dict[str, str]] = Field(
+        default=None,
+        description=(
+            "A dictionary of string keys to string values to be passed to the dialect "
+            "and/or the DBAPI upon connect. To specify non-string parameters to a "
+            "Python DBAPI directly, use connect_args."
+        ),
+    )
+
+
+class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
+    """
+    Block used to manage authentication with a database.
+
+    Upon instantiating, an engine is created and maintained for the life of
+    the object until the close method is called.
+
+    It is recommended to use this block as a context manager, which will automatically
+    close the engine and its connections when the context is exited.
+
+    It is also recommended that this block is loaded and consumed within a single task
+    or flow because if the block is passed across separate tasks and flows,
+    the state of the block's connection and cursor could be lost.
+
+    Attributes:
+        driver: The driver name, e.g. "postgresql+asyncpg"
+        database: The name of the database to use.
+        username: The user name used to authenticate.
+        password: The password used to authenticate.
+        host: The host address of the database.
+        port: The port to connect to the database.
+        query: A dictionary of string keys to string values to be passed to
+            the dialect and/or the DBAPI upon connect. To specify non-string
+            parameters to a Python DBAPI directly, use connect_args.
+        url: Manually create and provide a URL to create the engine,
+            this is useful for external dialects, e.g. Snowflake, because some
+            of the params, such as "warehouse", is not directly supported in
+            the vanilla `sqlalchemy.engine.URL.create` method; do not provide
+            this alongside with other URL params as it will raise a `ValueError`.
+        connect_args: The options which will be passed directly to the
+            DBAPI's connect() method as additional keyword arguments.
+        fetch_size: The number of rows to fetch at a time.
+
+    Example:
+        Load stored database credentials and use in context manager:
+        ```python
+        from prefect_sqlalchemy import SqlAlchemyConnector
+
+        database_block = SqlAlchemyConnector.load("BLOCK_NAME")
+        with database_block:
+            ...
+        ```
+
+        Create table named customers and insert values; then fetch the first 10 rows.
+        ```python
+        from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver
+
+        with SqlAlchemyConnector(
+            driver=SyncDriver.SQLITE_PYSQLITE,
+            database="prefect.db"
+        ) as database:
+            database.execute(
+                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
+            )
+            for i in range(1, 42):
+                database.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": f"Highway {i}"},
+                )
+            results = database.fetch_many(
+                "SELECT * FROM customers WHERE name = :name;",
+                parameters={"name": "Marvin"},
+                size=10
+            )
+        print(results)
+        ```
+    """
+
+    _block_type_name = "SQLAlchemy Connector"
+    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/37TOcxeP9kfXffpKVRAHiJ/0f359112e79d0bd3dfe38c73c4fc6363/sqlalchemy.png?h=250"  # noqa
+
+    url: Union[SqlAlchemyUrl, AnyUrl] = Field(
+        default=...,
+        description=(
+            "SQLAlchemy URL to create the engine; either create from components "
+            "or create from a string."
+        ),
+    )
+    connect_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "The options which will be passed directly to the DBAPI's connect() "
+            "method as additional keyword arguments."
+        ),
+    )
+    fetch_size: int = Field(
+        default=1, description="The number of rows to fetch at a time."
+    )
+
+    _engine: Optional[Union[AsyncEngine, Engine]] = None
+    _exit_stack: Union[ExitStack, AsyncExitStack] = None
+    _unique_results: Dict[str, CursorResult] = None
+
+    def block_initialization(self):
+        """
+        Initializes the engine.
+        """
+        super().block_initialization()
+
+        if isinstance(self.url, SqlAlchemyUrl):
+            driver = self.url.driver
+            drivername = driver.value if isinstance(driver, Enum) else driver
+            if self.url.password:
+                password = self.url.password.get_secret_value()
+            else:
+                password = None
+            url_params = dict(
+                drivername=drivername,
+                username=self.url.username,
+                password=password,
+                database=self.url.database,
+                host=self.url.host,
+                port=self.url.port,
+                query=self.url.query,
+            )
+            self._rendered_url = URL.create(
+                **{
+                    url_key: url_param
+                    for url_key, url_param in url_params.items()
+                    if url_param is not None
+                }
+            )
+        else:
+            # make rendered url from string
+            self._rendered_url = make_url(str(self.url))
+            drivername = self._rendered_url.drivername
+
+        try:
+            AsyncDriver(drivername)
+            self._driver_is_async = True
+        except ValueError:
+            self._driver_is_async = False
+
         if self._engine is None:
             self._start_engine()
 
@@ -298,7 +433,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         self._exit_stack = AsyncExitStack() if self._driver_is_async else ExitStack()
 
-    def get_engine(self) -> Union[Engine, AsyncEngine]:
+    def get_engine(self, **create_engine_kwargs) -> Union[Engine, AsyncEngine]:
         """
         Returns an authenticated engine that can be
         used to query from databases.
@@ -312,11 +447,11 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             Create an asynchronous engine to PostgreSQL using URL params.
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+            from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver
 
             @flow
             def sqlalchemy_credentials_flow():
-                sqlalchemy_credentials = DatabaseCredentials(
+                sqlalchemy_credentials = SqlAlchemyConnector(
                     driver=AsyncDriver.POSTGRESQL_ASYNCPG,
                     username="prefect",
                     password="prefect_password",
@@ -330,7 +465,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             Create a synchronous engine to Snowflake using the `url` kwarg.
             ```python
             from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+            from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver
 
             @flow
             def sqlalchemy_credentials_flow():
@@ -339,65 +474,113 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                     "@<account_identifier>/<database_name>"
                     "?warehouse=<warehouse_name>"
                 )
-                sqlalchemy_credentials = DatabaseCredentials(url=url)
+                sqlalchemy_credentials = SqlAlchemyConnector(url=url)
                 print(sqlalchemy_credentials.get_engine())
 
             sqlalchemy_credentials_flow()
             ```
         """
         if self._engine is not None:
+            self.logger.debug("Reusing existing engine.")
             return self._engine
 
         engine_kwargs = dict(
-            url=self.rendered_url,
+            url=self._rendered_url,
             connect_args=self.connect_args or {},
+            **create_engine_kwargs,
         )
         if self._driver_is_async:
             # no need to await here
             engine = create_async_engine(**engine_kwargs)
         else:
             engine = create_engine(**engine_kwargs)
+        self.logger.info("Created a new engine.")
         return engine
 
-    def get_client(self, begin: bool = True) -> Union[Connection, AsyncConnection]:
+    def get_connection(
+        self, begin: bool = True, **connect_kwargs
+    ) -> Union[Connection, AsyncConnection]:
         """
-        Returns an authenticated connection that can be used to query from databases.
+        Returns a connection that can be used to query from databases.
+
         Args:
             begin: Whether to begin a transaction on the connection; if True, if
                 any operations fail, the entire transaction will be rolled back.
+            **connect_kwargs: Additional keyword arguments to pass to either
+                `engine.begin` or engine.connect`.
 
         Returns:
-            The authenticated SQLAlchemy Connection / AsyncConnection.
+            The SQLAlchemy Connection / AsyncConnection.
 
         Examples:
             Create an synchronous connection as a context-managed transaction.
             ```python
-            from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials
-            @flow
-            def get_client_flow():
-                database_credentials = DatabaseCredentials.load("BLOCK_NAME")
-                with database_credentials.get_client(begin=False) as connection:
-                    connection.execute("SELECT * FROM table LIMIT 1;")
+            from prefect_sqlalchemy import SqlAlchemyConnector
+
+            sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
+            with sqlalchemy_connector.get_connection(begin=False) as connection:
+                connection.execute("SELECT * FROM table LIMIT 1;")
             ```
 
             Create an asynchronous connection as a context-managed transacation.
             ```python
-            from prefect import flow
-            from prefect_sqlalchemy import DatabaseCredentials
-            @flow
-            def get_client_flow():
-                database_credentials = DatabaseCredentials.load("BLOCK_NAME")
-                async with database_credentials.get_client(begin=False) as connection:
-                    await connection.execute("SELECT * FROM table LIMIT 1;")
+            import asyncio
+            from prefect_sqlalchemy import SqlAlchemyConnector
+
+            sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
+            async with sqlalchemy_connector.get_connection(begin=False) as connection:
+                asyncio.run(connection.execute("SELECT * FROM table LIMIT 1;"))
             ```
         """  # noqa: E501
         engine = self.get_engine()
         if begin:
-            connection = engine.begin()
+            connection = engine.begin(**connect_kwargs)
         else:
-            connection = engine.connect()
+            connection = engine.connect(**connect_kwargs)
+        self.logger.info("Created a new connection.")
         return connection
+
+    def get_client(
+        self, client_type: Literal["engine", "connection"], **get_client_kwargs
+    ) -> Union[Engine, AsyncEngine, Connection, AsyncConnection]:
+        """
+        Returns either an engine or connection that can be used to query from databases.
+
+        Args:
+            client_type: Select from either 'engine' or 'connection'.
+            **get_client_kwargs: Additional keyword arguments to pass to
+                either `get_engine` or `get_connection`.
+
+        Returns:
+            The authenticated SQLAlchemy engine or connection.
+
+        Examples:
+            Create an engine.
+            ```
+            from prefect_sqlalchemy import SqlalchemyConnector
+
+            sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
+            engine = sqlalchemy_connector.get_client(client_type="engine")
+            ```
+
+            Create a context managed connection.
+            ```
+            from prefect_sqlalchemy import SqlalchemyConnector
+
+            sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
+            with sqlalchemy_connector.get_client(client_type="connection") as conn:
+                ...
+            ```
+        """  # noqa: E501
+        if client_type == "engine":
+            client = self.get_engine(**get_client_kwargs)
+        elif client_type == "connection":
+            client = self.get_connection(**get_client_kwargs)
+        else:
+            raise ValueError(
+                f"{client_type!r} is not supported; choose from engine or connection."
+            )
+        return client
 
     async def _async_sync_execute(
         self,
@@ -419,12 +602,12 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         return result_set
 
     @asynccontextmanager
-    async def _manage_connection(self, **get_client_kwargs: Dict[str, Any]):
+    async def _manage_connection(self, **get_connection_kwargs: Dict[str, Any]):
         if self._driver_is_async:
-            async with self.get_client(**get_client_kwargs) as connection:
+            async with self.get_connection(**get_connection_kwargs) as connection:
                 yield connection
         else:
-            with self.get_client(**get_client_kwargs) as connection:
+            with self.get_connection(**get_connection_kwargs) as connection:
                 yield connection
 
     async def _get_result_set(
@@ -451,10 +634,10 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         if input_hash not in self._unique_results.keys():
             if self._driver_is_async:
                 connection = await self._exit_stack.enter_async_context(
-                    self.get_client()
+                    self.get_connection()
                 )
             else:
-                connection = self._exit_stack.enter_context(self.get_client())
+                connection = self._exit_stack.enter_context(self.get_connection())
             result_set = await self._async_sync_execute(
                 connection, *execute_args, **execute_kwargs
             )
@@ -484,11 +667,11 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Tries to close all opened connections and their results.
 
         Examples:
-            Resets connections so fetch* methods return new results.
+            Resets connections so fetch_* methods return new results.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 results = database.fetch_one("SELECT * FROM customers")
                 database.reset_connections()
                 results = database.fetch_one("SELECT * FROM customers")
@@ -496,24 +679,25 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} does not have synchronous connections. "
+                f"{self._rendered_url.drivername} has no synchronous connections. "
                 f"Please use the `reset_async_connections` method instead."
             )
         self._reset_cursor_results()
         self._exit_stack.close()
+        self.logger.info("Reset opened connections and their results.")
 
     async def reset_async_connections(self) -> None:
         """
         Tries to close all opened connections and their results.
 
         Examples:
-            Resets connections so fetch* methods return new results.
+            Resets connections so fetch_* methods return new results.
             ```python
             import asyncio
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
             async def example_run():
-                async with DatabaseCredentials.load("MY_BLOCK") as database:
+                async with SqlAlchemyConnector.load("MY_BLOCK") as database:
                     results = await database.fetch_one("SELECT * FROM customers")
                     await database.reset_async_connections()
                     results = await database.fetch_one("SELECT * FROM customers")
@@ -523,11 +707,12 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if not self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} does not have asynchronous connections. "
+                f"{self._rendered_url.drivername} has no asynchronous connections. "
                 f"Please use the `reset_connections` method instead."
             )
         self._reset_cursor_results()
         await self._exit_stack.aclose()
+        self.logger.info("Reset opened connections and their results.")
 
     @sync_compatible
     async def fetch_one(
@@ -556,9 +741,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Examples:
             Create a table, insert three rows into it, and fetch a row repeatedly.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
                 database.execute_many(
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
@@ -577,6 +762,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         result_set = await self._get_result_set(
             text(operation), parameters, execution_options=execution_options
         )
+        self.logger.debug("Preparing to fetch one row.")
         row = result_set.fetchone()
         return row
 
@@ -610,9 +796,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Examples:
             Create a table, insert three rows into it, and fetch two rows repeatedly.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
                 database.execute_many(
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
@@ -632,6 +818,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             text(operation), parameters, execution_options=execution_options
         )
         size = size or self.fetch_size
+        self.logger.debug(f"Preparing to fetch {size} rows.")
         rows = result_set.fetchmany(size=size)
         return rows
 
@@ -662,9 +849,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Examples:
             Create a table, insert three rows into it, and fetch all where name is 'Me'.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
                 database.execute_many(
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
@@ -680,6 +867,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         result_set = await self._get_result_set(
             text(operation), parameters, execution_options=execution_options
         )
+        self.logger.debug("Preparing to fetch all rows.")
         rows = result_set.fetchall()
         return rows
 
@@ -705,9 +893,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Examples:
             Create a table and insert one row into it.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
                 database.execute(
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
@@ -722,12 +910,13 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                 parameters,
                 execution_options=execution_options,
             )
+        self.logger.info(f"Executed the operation, {operation!r}")
 
     @sync_compatible
     async def execute_many(
         self,
         operation: str,
-        seq_of_parameters: Optional[List[Dict[str, Any]]],
+        seq_of_parameters: List[Dict[str, Any]],
         **execution_options: Dict[str, Any],
     ) -> None:
         """
@@ -745,9 +934,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         Examples:
             Create a table and insert two rows into it.
             ```python
-            from prefect_sqlalchemy import DatabaseCredentials
+            from prefect_sqlalchemy import SqlAlchemyConnector
 
-            with DatabaseCredentials.load("MY_BLOCK") as database:
+            with SqlAlchemyConnector.load("MY_BLOCK") as database:
                 database.execute("CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);")
                 database.execute_many(
                     "INSERT INTO customers (name, address) VALUES (:name, :address);",
@@ -766,6 +955,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
                 seq_of_parameters,
                 execution_options=execution_options,
             )
+        self.logger.info(
+            f"Executed {len(seq_of_parameters)} operations based off {operation!r}."
+        )
 
     async def __aenter__(self):
         """
@@ -773,11 +965,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if not self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} does not support asynchronous execution. "
+                f"{self._rendered_url.drivername} cannot be run asynchronously. "
                 f"Please use the `with` syntax."
             )
-        # no need to await here
-        self._start_engine()
         return self
 
     async def __aexit__(self, *args):
@@ -792,7 +982,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if not self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} is not asynchronous. "
+                f"{self._rendered_url.drivername} is not asynchronous. "
                 f"Please use the `close` method instead."
             )
         try:
@@ -801,6 +991,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             if self._engine is not None:
                 await self._engine.dispose()
                 self._engine = None
+                self.logger.info("Disposed the engine.")
 
     def __enter__(self):
         """
@@ -808,10 +999,9 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} does not support synchronous execution. "
+                f"{self._rendered_url.drivername} cannot be run synchronously. "
                 f"Please use the `async with` syntax."
             )
-        self._start_engine()
         return self
 
     def __exit__(self, *args):
@@ -826,7 +1016,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
         """
         if self._driver_is_async:
             raise RuntimeError(
-                f"{self.driver} is not synchronous. "
+                f"{self._rendered_url.drivername} is not synchronous. "
                 f"Please use the `aclose` method instead."
             )
 
@@ -836,6 +1026,7 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
             if self._engine is not None:
                 self._engine.dispose()
                 self._engine = None
+                self.logger.info("Disposed the engine.")
 
     def __getstate__(self):
         """Allows the block to be pickleable."""
@@ -846,6 +1037,6 @@ class DatabaseCredentials(CredentialsBlock, DatabaseBlock):
     def __setstate__(self, data: dict):
         """Upon loading back, restart the engine and results."""
         self.__dict__.update(data)
-        self._start_engine()
+        self._start_engine()  # block initialization doesn't get called here
         self._start_exit_stack()
         self._unique_results = {}

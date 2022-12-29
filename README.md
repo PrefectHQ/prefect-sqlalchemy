@@ -48,13 +48,13 @@ Note, to use the `load` method on Blocks, you must already have a block document
 
 ### Write and run a flow
 
-#### Using a SyncDriver with DatabaseCredentials
-Use `DatabaseCredentials` as a context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+#### Using a SyncDriver with SqlAlchemyConnector
+Use `SqlAlchemyConnector` as a context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
 
 ```python
-from prefect_sqlalchemy import DatabaseCredentials, SyncDriver
+from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver
 
-with DatabaseCredentials(
+with SqlAlchemyConnector(
     driver=SyncDriver.SQLITE_PYSQLITE,
     database="my.db",
 ) as database_credentials:
@@ -77,14 +77,14 @@ with DatabaseCredentials(
     print(database_credentials.fetch_one("SELECT * FROM customers"))
 ```
 
-#### Using an AsyncDriver with DatabaseCredentials
+#### Using an AsyncDriver with SqlAlchemyConnector
 
-Use `DatabaseCredentials` as an async context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+Use `SqlAlchemyConnector` as an async context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
 
 ```python
-from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver
 
-async with DatabaseCredentials(
+async with SqlAlchemyConnector(
     driver=AsyncDriver.SQLITE_AIOSQLITE,
     database="test.db",
 ) as database_credentials:
