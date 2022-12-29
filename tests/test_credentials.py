@@ -227,6 +227,24 @@ class TestSqlAlchemyConnector:
             )
             assert isinstance(connection, engine_type)
 
+    @pytest.mark.parametrize("begin", [True, False])
+    def test_get_client(self, begin, managed_connector_with_data):
+        connection = managed_connector_with_data.get_client(
+            client_type="connection", begin=begin
+        )
+        if begin:
+            engine_type = (
+                AsyncEngine if managed_connector_with_data._driver_is_async else Engine
+            )
+            assert isinstance(connection, engine_type._trans_ctx)
+        else:
+            engine_type = (
+                AsyncConnection
+                if managed_connector_with_data._driver_is_async
+                else Connection
+            )
+            assert isinstance(connection, engine_type)
+
     async def test_reset_connections_sync_async_error(
         self, managed_connector_with_data
     ):
