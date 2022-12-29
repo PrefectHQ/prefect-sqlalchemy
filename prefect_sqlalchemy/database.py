@@ -316,7 +316,9 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         """
         self._exit_stack = AsyncExitStack() if self._driver_is_async else ExitStack()
 
-    def get_engine(self, **create_engine_kwargs) -> Union[Engine, AsyncEngine]:
+    def get_engine(
+        self, **create_engine_kwargs: Dict[str, Any]
+    ) -> Union[Engine, AsyncEngine]:
         """
         Returns an authenticated engine that can be
         used to query from databases.
@@ -381,7 +383,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         return engine
 
     def get_connection(
-        self, begin: bool = True, **connect_kwargs
+        self, begin: bool = True, **connect_kwargs: Dict[str, Any]
     ) -> Union[Connection, AsyncConnection]:
         """
         Returns a connection that can be used to query from databases.
@@ -424,7 +426,9 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         return connection
 
     def get_client(
-        self, client_type: Literal["engine", "connection"], **get_client_kwargs
+        self,
+        client_type: Literal["engine", "connection"],
+        **get_client_kwargs: Dict[str, Any],
     ) -> Union[Engine, AsyncEngine, Connection, AsyncConnection]:
         """
         Returns either an engine or connection that can be used to query from databases.
