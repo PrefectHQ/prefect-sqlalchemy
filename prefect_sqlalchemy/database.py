@@ -1,6 +1,7 @@
 """Tasks for querying a database with SQLAlchemy"""
 
 import contextlib
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from prefect import task
@@ -93,6 +94,11 @@ async def sqlalchemy_execute(
         sqlalchemy_execute_flow()
         ```
     """
+    warnings.warn(
+        "sqlalchemy_query is now deprecated and will be removed March 2023; "
+        "please use SqlAlchemyConnector execute_* methods instead.",
+        DeprecationWarning,
+    )
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
     engine = sqlalchemy_credentials.get_engine()
@@ -146,6 +152,11 @@ async def sqlalchemy_query(
         sqlalchemy_query_flow()
         ```
     """
+    warnings.warn(
+        "sqlalchemy_query is now deprecated and will be removed March 2023; "
+        "please use SqlAlchemyConnector fetch_* methods instead.",
+        DeprecationWarning,
+    )
     engine = sqlalchemy_credentials.get_engine()
     async_supported = sqlalchemy_credentials._driver_is_async
     async with _connect(engine, async_supported) as connection:
