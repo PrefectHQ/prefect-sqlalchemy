@@ -55,7 +55,7 @@ async def _execute(
 @task
 async def sqlalchemy_execute(
     statement: str,
-    database_credentials: "DatabaseCredentials",
+    sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
 ):
     """
@@ -64,7 +64,7 @@ async def sqlalchemy_execute(
 
     Args:
         statement: The statement to execute against the database.
-        database_credentials: The credentials to use to authenticate.
+        sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
 
     Examples:
@@ -76,17 +76,17 @@ async def sqlalchemy_execute(
 
         @flow
         def sqlalchemy_execute_flow():
-            database_credentials = DatabaseCredentials(
+            sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.SQLITE_AIOSQLITE,
                 database="prefect.db",
             )
             sqlalchemy_execute(
                 "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
-                database_credentials,
+                sqlalchemy_credentials,
             )
             sqlalchemy_execute(
                 "INSERT INTO customers (name, address) VALUES (:name, :address);",
-                database_credentials,
+                sqlalchemy_credentials,
                 params={"name": "Marvin", "address": "Highway 42"}
             )
 
@@ -95,8 +95,8 @@ async def sqlalchemy_execute(
     """
     # do not return anything or else results in the error:
     # This result object does not return rows. It has been closed automatically
-    engine = database_credentials.get_engine()
-    async_supported = database_credentials._driver_is_async
+    engine = sqlalchemy_credentials.get_engine()
+    async_supported = sqlalchemy_credentials._driver_is_async
     async with _connect(engine, async_supported) as connection:
         await _execute(connection, statement, params, async_supported)
 
@@ -104,7 +104,7 @@ async def sqlalchemy_execute(
 @task
 async def sqlalchemy_query(
     query: str,
-    database_credentials: "DatabaseCredentials",
+    sqlalchemy_credentials: "DatabaseCredentials",
     params: Optional[Union[Tuple[Any], Dict[str, Any]]] = None,
     limit: Optional[int] = None,
 ) -> List[Tuple[Any]]:
@@ -113,7 +113,7 @@ async def sqlalchemy_query(
 
     Args:
         query: The query to execute against the database.
-        database_credentials: The credentials to use to authenticate.
+        sqlalchemy_credentials: The credentials to use to authenticate.
         params: The params to replace the placeholders in the query.
         limit: The number of rows to fetch. Note, this parameter is
             executed on the client side, i.e. passed to `fetchmany`.
@@ -132,13 +132,13 @@ async def sqlalchemy_query(
 
         @flow
         def sqlalchemy_query_flow():
-            database_credentials = DatabaseCredentials(
+            sqlalchemy_credentials = DatabaseCredentials(
                 driver=AsyncDriver.SQLITE_AIOSQLITE,
                 database="prefect.db",
             )
             result = sqlalchemy_query(
                 "SELECT * FROM customers WHERE name = :name;",
-                database_credentials,
+                sqlalchemy_credentials,
                 params={"name": "Marvin"},
             )
             return result
@@ -146,8 +146,8 @@ async def sqlalchemy_query(
         sqlalchemy_query_flow()
         ```
     """
-    engine = database_credentials.get_engine()
-    async_supported = database_credentials._driver_is_async
+    engine = sqlalchemy_credentials.get_engine()
+    async_supported = sqlalchemy_credentials._driver_is_async
     async with _connect(engine, async_supported) as connection:
         result = await _execute(connection, query, params, async_supported)
         # some databases, like sqlite, require a connection still open to fetch!
