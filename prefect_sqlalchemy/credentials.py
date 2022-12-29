@@ -93,6 +93,7 @@ class SyncDriver(Enum):
 class DatabaseCredentials(Block):
     """
     Block used to manage authentication with a database.
+
     Attributes:
         driver: The driver name, e.g. "postgresql+asyncpg"
         database: The name of the database to use.
@@ -110,6 +111,7 @@ class DatabaseCredentials(Block):
             this alongside with other URL params as it will raise a `ValueError`.
         connect_args: The options which will be passed directly to the
             DBAPI's connect() method as additional keyword arguments.
+
     Example:
         Load stored database credentials:
         ```python
@@ -188,13 +190,16 @@ class DatabaseCredentials(Block):
         """
         Returns an authenticated engine that can be
         used to query from databases.
+
         Returns:
             The authenticated SQLAlchemy Connection / AsyncConnection.
+
         Examples:
             Create an asynchronous engine to PostgreSQL using URL params.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+
             @flow
             def sqlalchemy_credentials_flow():
                 sqlalchemy_credentials = DatabaseCredentials(
@@ -204,12 +209,15 @@ class DatabaseCredentials(Block):
                     database="postgres"
                 )
                 print(sqlalchemy_credentials.get_engine())
+
             sqlalchemy_credentials_flow()
             ```
+
             Create a synchronous engine to Snowflake using the `url` kwarg.
             ```python
             from prefect import flow
             from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
+
             @flow
             def sqlalchemy_credentials_flow():
                 url = (
@@ -219,6 +227,7 @@ class DatabaseCredentials(Block):
                 )
                 sqlalchemy_credentials = DatabaseCredentials(url=url)
                 print(sqlalchemy_credentials.get_engine())
+
             sqlalchemy_credentials_flow()
             ```
         """

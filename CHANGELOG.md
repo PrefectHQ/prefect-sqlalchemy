@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Released on December 15th, 2022.
 
-- Serialization of `SqlAlchemyConnector.rendered_url` - [#36](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/36)
+- Serialization of `DatabaseCredentials.rendered_url` - [#36](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/36)
 
 ## 0.2.0
 
@@ -31,7 +31,7 @@ Released on September 1st, 2022.
 
 ### Changed
 
-- `SqlAlchemyConnector` now only accepts a `str` in URL format - [#29](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/29)
+- `DatabaseCredentials` now only accepts a `str` in URL format - [#29](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/29)
 
 ### Fixed
 
@@ -53,11 +53,11 @@ Released on July 26th, 2022.
 ### Changed
 
 - Updated tests to be compatible with core Prefect library (v2.0b9) and bumped required version - [#18](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/18)
-- Converted `SqlAlchemyConnector` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
+- Converted `DatabaseCredentials` into a `Block` - [#19](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/19)
 - Improve docstring; clarifying `limit` in `sqlalchemy_execute` is executed on client side - [#21](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/21)
 
 ### Fixed
-- Fixed `SqlAlchemyConnector` to `get_secret_value` for password - [#22](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/22)
+- Fixed `DatabaseCredentials` to `get_secret_value` for password - [#22](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/22)
 
 ## 0.1.0
 
