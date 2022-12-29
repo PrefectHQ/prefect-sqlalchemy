@@ -3,7 +3,7 @@
 import warnings
 from contextlib import AsyncExitStack, ExitStack, asynccontextmanager
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from prefect.blocks.abstract import CredentialsBlock, DatabaseBlock
 from prefect.blocks.core import Block
@@ -16,6 +16,7 @@ from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
+from typing_extensions import Literal
 
 
 class AsyncDriver(Enum):
@@ -380,6 +381,24 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
     _engine: Optional[Union[AsyncEngine, Engine]] = None
     _exit_stack: Union[ExitStack, AsyncExitStack] = None
     _unique_results: Dict[str, CursorResult] = None
+
+    class Config:
+        """Configuration of pydantic."""
+
+        # Support serialization of the 'URL' type
+        arbitrary_types_allowed = True
+        json_encoders = {URL: lambda u: u.render_as_string()}
+
+    def dict(self, *args, **kwargs) -> Dict:
+        """
+        Convert to a dictionary.
+        """
+        # Support serialization of the 'URL' type
+        d = super().dict(*args, **kwargs)
+        d["_rendered_url"] = SecretStr(
+            self._rendered_url.render_as_string(hide_password=False)
+        )
+        return d
 
     def block_initialization(self):
         """
