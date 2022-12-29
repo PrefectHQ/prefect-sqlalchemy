@@ -1,8 +1,7 @@
 from . import _version
 from .credentials import (  # noqa
     DatabaseCredentials,
-    SqlAlchemyConnector,
-    SqlAlchemyUrl,
+    ConnectionComponents,
     AsyncDriver,
     SyncDriver,
 )

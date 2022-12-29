@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `SqlAlchemyConnector` database block - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
-- `SqlAlchemyUrl` base model - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
+- `ConnectionComponents` base model - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
 
 ### Changed
 
