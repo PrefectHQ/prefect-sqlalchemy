@@ -1,9 +1,15 @@
 import pytest
 from prefect import flow
 from sqlalchemy.engine import URL, Engine
-from sqlalchemy.ext.asyncio.engine import AsyncEngine
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from prefect_sqlalchemy.credentials import AsyncDriver, DatabaseCredentials, SyncDriver
+from prefect_sqlalchemy.credentials import (
+    AsyncDriver,
+    ConnectionComponents,
+    DatabaseCredentials,
+    SyncDriver,
+)
 
 
 @pytest.mark.parametrize(
@@ -55,7 +61,7 @@ def test_sqlalchemy_credentials_get_engine_async(driver):
             host="localhost",
             port=5432,
         )
-        assert sqlalchemy_credentials._async_supported is True
+        assert sqlalchemy_credentials._driver_is_async is True
         assert sqlalchemy_credentials.url is None
 
         expected_rendered_url = "postgresql+asyncpg://user:***@localhost:5432/database"
@@ -83,7 +89,7 @@ def test_sqlalchemy_credentials_get_engine_sync(driver):
             host="localhost",
             port=5432,
         )
-        assert sqlalchemy_credentials._async_supported is False
+        assert sqlalchemy_credentials._driver_is_async is False
         assert sqlalchemy_credentials.url is None
 
         expected_rendered_url = "postgresql+psycopg2://user:***@localhost:5432/database"
@@ -102,7 +108,7 @@ def test_sqlalchemy_credentials_get_engine_url():
     def test_flow():
         url = "postgresql://username:password@account/database"
         sqlalchemy_credentials = DatabaseCredentials(url=url)
-        assert sqlalchemy_credentials._async_supported is False
+        assert sqlalchemy_credentials._driver_is_async is False
         assert sqlalchemy_credentials.url == url
 
         expected_rendered_url = "postgresql://username:***@account/database"
@@ -122,7 +128,7 @@ def test_sqlalchemy_credentials_sqlite(tmp_path):
         driver = SyncDriver.SQLITE_PYSQLITE
         database = str(tmp_path / "prefect.db")
         sqlalchemy_credentials = DatabaseCredentials(driver=driver, database=database)
-        assert sqlalchemy_credentials._async_supported is False
+        assert sqlalchemy_credentials._driver_is_async is False
 
         expected_rendered_url = f"sqlite+pysqlite:///{database}"
         assert repr(sqlalchemy_credentials.rendered_url) == expected_rendered_url
@@ -150,7 +156,6 @@ def test_save_load_roundtrip():
     )
     credentials.save("test-credentials", overwrite=True)
     loaded_credentials = credentials.load("test-credentials")
-    assert loaded_credentials == credentials
     assert loaded_credentials.driver == AsyncDriver.POSTGRESQL_ASYNCPG
     assert loaded_credentials.username == "test-username"
     assert loaded_credentials.password.get_secret_value() == "test-password"
@@ -158,3 +163,26 @@ def test_save_load_roundtrip():
     assert loaded_credentials.host == "localhost"
     assert loaded_credentials.port == "5678"
     assert loaded_credentials.rendered_url == credentials.rendered_url
+
+
+def test_sqlalchemy_connection_components_create_url_minimal():
+    connection_components = ConnectionComponents(
+        driver=SyncDriver.POSTGRESQL_PSYCOPG2, database="my.db"
+    )
+    actual = connection_components.create_url()
+    assert actual == make_url("postgresql+psycopg2:///my.db")
+
+
+def test_sqlalchemy_connection_components_create_url_optional_params():
+    connection_components = ConnectionComponents(
+        driver=SyncDriver.POSTGRESQL_PSYCOPG2,
+        database="my.db",
+        username="myusername",
+        password="mypass",
+        port=1234,
+        host="localhost",
+    )
+    actual = connection_components.create_url()
+    assert actual == make_url(
+        "postgresql+psycopg2://myusername:mypass@localhost:1234/my.db"
+    )
