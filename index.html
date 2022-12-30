@@ -280,6 +280,26 @@
     Write and run a flow
   </a>
   
+    <nav class="md-nav" aria-label="Write and run a flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-a-syncdriver-with-sqlalchemyconnector" class="md-nav__link">
+    Using a SyncDriver with SqlAlchemyConnector
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-an-asyncdriver-with-sqlalchemyconnector" class="md-nav__link">
+    Using an AsyncDriver with SqlAlchemyConnector
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -399,6 +419,26 @@
     Write and run a flow
   </a>
   
+    <nav class="md-nav" aria-label="Write and run a flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-a-syncdriver-with-sqlalchemyconnector" class="md-nav__link">
+    Using a SyncDriver with SqlAlchemyConnector
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-an-asyncdriver-with-sqlalchemyconnector" class="md-nav__link">
+    Using an AsyncDriver with SqlAlchemyConnector
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -473,33 +513,62 @@
 </code></pre></div>
 <p>Note, to use the <code>load</code> method on Blocks, you must already have a block document <a href="https://orion-docs.prefect.io/concepts/blocks/#saving-blocks">saved through code</a> or <a href="https://orion-docs.prefect.io/ui/blocks/">saved through the UI</a>.</p>
 <h3 id="write-and-run-a-flow">Write and run a flow</h3>
-<p>Create table named customers and insert values.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect</span> <span class="kn">import</span> <span class="n">flow</span>
+<h4 id="using-a-syncdriver-with-sqlalchemyconnector">Using a SyncDriver with SqlAlchemyConnector</h4>
+<p>Use <code>SqlAlchemyConnector</code> as a context manager to <code>execute</code> and <code>execute_many</code> operations; then, <code>fetch_many</code> and <code>fetch_one</code> operations.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">SyncDriver</span><span class="p">,</span> <span class="n">ConnectionComponents</span>
 
-<span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">DatabaseCredentials</span><span class="p">,</span> <span class="n">AsyncDriver</span>
-<span class="kn">from</span> <span class="nn">prefect_sqlalchemy.database</span> <span class="kn">import</span> <span class="n">sqlalchemy_execute</span>
-
-
-<span class="nd">@flow</span>
-<span class="k">def</span> <span class="nf">sqlalchemy_execute_flow</span><span class="p">():</span>
-    <span class="n">sqlalchemy_credentials</span> <span class="o">=</span> <span class="n">DatabaseCredentials</span><span class="p">(</span>
-        <span class="n">driver</span><span class="o">=</span><span class="n">AsyncDriver</span><span class="o">.</span><span class="n">POSTGRESQL_ASYNCPG</span><span class="p">,</span>
-        <span class="n">username</span><span class="o">=</span><span class="s2">&quot;prefect&quot;</span><span class="p">,</span>
-        <span class="n">password</span><span class="o">=</span><span class="s2">&quot;prefect_password&quot;</span><span class="p">,</span>
-        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
+    <span class="n">connection_info</span><span class="o">=</span><span class="n">ConnectionComponents</span><span class="p">(</span>
+        <span class="n">driver</span><span class="o">=</span><span class="n">SyncDriver</span><span class="o">.</span><span class="n">SQLITE_PYSQLITE</span><span class="p">,</span>
+        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;my.db&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">database_credentials</span><span class="p">:</span>
+    <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span>
     <span class="p">)</span>
-    <span class="n">sqlalchemy_execute</span><span class="p">(</span>
-        <span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">,</span>
-        <span class="n">sqlalchemy_credentials</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">sqlalchemy_execute</span><span class="p">(</span>
+    <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
         <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
-        <span class="n">sqlalchemy_credentials</span><span class="p">,</span>
-        <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">}</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
     <span class="p">)</span>
+    <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute_many</span><span class="p">(</span>
+        <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
+        <span class="n">seq_of_parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Ford&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="c1"># Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">database_credentials</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">database_credentials</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">))</span>
+</code></pre></div>
+<h4 id="using-an-asyncdriver-with-sqlalchemyconnector">Using an AsyncDriver with SqlAlchemyConnector</h4>
+<p>Use <code>SqlAlchemyConnector</code> as an async context manager to <code>execute</code> and <code>execute_many</code> operations; then, <code>fetch_many</code> and <code>fetch_one</code> operations.</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">AsyncDriver</span><span class="p">,</span> <span class="n">ConnectionComponents</span>
 
-<span class="n">sqlalchemy_execute_flow</span><span class="p">()</span>
-</code></pre></div></p>
+<span class="k">async</span> <span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
+    <span class="n">connection_info</span><span class="o">=</span><span class="n">ConnectionComponents</span><span class="p">(</span>
+        <span class="n">driver</span><span class="o">=</span><span class="n">AsyncDriver</span><span class="o">.</span><span class="n">SQLITE_AIOSQLITE</span><span class="p">,</span>
+        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;test.db&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">database_credentials</span><span class="p">:</span>
+    <span class="k">await</span> <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span>
+    <span class="p">)</span>
+    <span class="k">await</span> <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">await</span> <span class="n">database_credentials</span><span class="o">.</span><span class="n">execute_many</span><span class="p">(</span>
+        <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
+        <span class="n">seq_of_parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Ford&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+        <span class="p">],</span>
+    <span class="p">)</span>
+    <span class="c1"># Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results</span>
+    <span class="nb">print</span><span class="p">(</span><span class="k">await</span> <span class="n">database_credentials</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="k">await</span> <span class="n">database_credentials</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">))</span>
+</code></pre></div>
 <h2 id="resources">Resources</h2>
 <p>If you encounter any bugs while using <code>prefect-sqlalchemy</code>, feel free to open an issue in the <a href="https://github.com/PrefectHQ/prefect-sqlalchemy">prefect-sqlalchemy</a> repository.</p>
 <p>If you have any questions or issues while using <code>prefect-sqlalchemy</code>, you can find help in either the <a href="https://discourse.prefect.io/">Prefect Discourse forum</a> or the <a href="https://prefect.io/slack">Prefect Slack community</a>.</p>
