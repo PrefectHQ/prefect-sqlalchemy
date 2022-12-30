@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## 0.2.2
+
+Released on December 30th, 2022.
+
+### Added
+
+- `SqlAlchemyConnector` database block - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
+- `ConnectionComponents` base model - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
+
+### Deprecated
+
+- `DatabaseCredentials` and all tasks in `prefect_sqlalchemy.database`, in favor of `SqlAlchemyConnector` - [#35](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/35)
+
 ## 0.2.1
 
 Released on December 15th, 2022.

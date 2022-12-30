@@ -1,19 +1,15 @@
 """Credential classes used to perform authenticated interactions with SQLAlchemy"""
 
+import warnings
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
-
-from pydantic import AnyUrl, SecretStr
-from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.url import URL, make_url
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import NullPool
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Connection
-    from sqlalchemy.ext.asyncio.engine import AsyncConnection
+from typing import Any, Dict, Optional, Union
 
 from prefect.blocks.core import Block
+from pydantic import AnyUrl, BaseModel, Field, SecretStr
+from sqlalchemy.engine import Connection, create_engine
+from sqlalchemy.engine.url import URL, make_url
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
+from sqlalchemy.pool import NullPool
 
 
 class AsyncDriver(Enum):
@@ -88,6 +84,64 @@ class SyncDriver(Enum):
     MSSQL_PYMSSQL = "mssql+pymssql"
 
 
+class ConnectionComponents(BaseModel):
+    """
+    Parameters to use to create a SQLAlchemy engine URL.
+    """
+
+    driver: Union[AsyncDriver, SyncDriver, str] = Field(
+        default=..., description="The driver name to use."
+    )
+    database: str = Field(default=..., description="The name of the database to use.")
+    username: Optional[str] = Field(
+        default=None, description="The user name used to authenticate."
+    )
+    password: Optional[SecretStr] = Field(
+        default=None, description="The password used to authenticate."
+    )
+    host: Optional[str] = Field(
+        default=None, description="The host address of the database."
+    )
+    port: Optional[str] = Field(
+        default=None, description="The port to connect to the database."
+    )
+    query: Optional[Dict[str, str]] = Field(
+        default=None,
+        description=(
+            "A dictionary of string keys to string values to be passed to the dialect "
+            "and/or the DBAPI upon connect. To specify non-string parameters to a "
+            "Python DBAPI directly, use connect_args."
+        ),
+    )
+
+    def create_url(self) -> URL:
+        """
+        Create a fully formed connection URL.
+
+        Returns:
+            The SQLAlchemy engine URL.
+        """
+        driver = self.driver
+        drivername = driver.value if isinstance(driver, Enum) else driver
+        password = self.password.get_secret_value() if self.password else None
+        url_params = dict(
+            drivername=drivername,
+            username=self.username,
+            password=password,
+            database=self.database,
+            host=self.host,
+            port=self.port,
+            query=self.query,
+        )
+        return URL.create(
+            **{
+                url_key: url_param
+                for url_key, url_param in url_params.items()
+                if url_param is not None
+            }
+        )
+
+
 class DatabaseCredentials(Block):
     """
     Block used to manage authentication with a database.
@@ -114,7 +168,6 @@ class DatabaseCredentials(Block):
         Load stored database credentials:
         ```python
         from prefect_sqlalchemy import DatabaseCredentials
-
         database_block = DatabaseCredentials.load("BLOCK_NAME")
         ```
     """
@@ -136,15 +189,20 @@ class DatabaseCredentials(Block):
         """
         Initializes the engine.
         """
+        warnings.warn(
+            "DatabaseCredentials is now deprecated and will be removed March 2023; "
+            "please use SqlAlchemyConnector instead.",
+            DeprecationWarning,
+        )
         if isinstance(self.driver, AsyncDriver):
             drivername = self.driver.value
-            self._async_supported = True
+            self._driver_is_async = True
         elif isinstance(self.driver, SyncDriver):
             drivername = self.driver.value
-            self._async_supported = False
+            self._driver_is_async = False
         else:
             drivername = self.driver
-            self._async_supported = drivername in AsyncDriver._value2member_map_
+            self._driver_is_async = drivername in AsyncDriver._value2member_map_
 
         url_params = dict(
             drivername=drivername,
@@ -230,7 +288,7 @@ class DatabaseCredentials(Block):
             connect_args=self.connect_args or {},
             poolclass=NullPool,
         )
-        if self._async_supported:
+        if self._driver_is_async:
             engine = create_async_engine(**engine_kwargs)
         else:
             engine = create_engine(**engine_kwargs)

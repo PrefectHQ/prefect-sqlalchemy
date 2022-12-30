@@ -42,33 +42,67 @@ A list of available blocks in `prefect-sqlalchemy` and their setup instructions 
 
 ### Write and run a flow
 
-Create table named customers and insert values.
+#### Using a SyncDriver with SqlAlchemyConnector
+Use `SqlAlchemyConnector` as a context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+
 ```python
-from prefect import flow
+from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver, ConnectionComponents
 
-from prefect_sqlalchemy import DatabaseCredentials, AsyncDriver
-from prefect_sqlalchemy.database import sqlalchemy_execute
-
-
-@flow
-def sqlalchemy_execute_flow():
-    sqlalchemy_credentials = DatabaseCredentials(
-        driver=AsyncDriver.POSTGRESQL_ASYNCPG,
-        username="prefect",
-        password="prefect_password",
-        database="postgres",
+with SqlAlchemyConnector(
+    connection_info=ConnectionComponents(
+        driver=SyncDriver.SQLITE_PYSQLITE,
+        database="my.db"
+    ),
+) as database_credentials:
+    database_credentials.execute(
+        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
     )
-    sqlalchemy_execute(
-        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);",
-        sqlalchemy_credentials,
-    )
-    sqlalchemy_execute(
+    database_credentials.execute(
         "INSERT INTO customers (name, address) VALUES (:name, :address);",
-        sqlalchemy_credentials,
-        params={"name": "Marvin", "address": "Highway 42"}
+        parameters={"name": "Marvin", "address": "Highway 42"},
     )
+    database_credentials.execute_many(
+        "INSERT INTO customers (name, address) VALUES (:name, :address);",
+        seq_of_parameters=[
+            {"name": "Ford", "address": "Highway 42"},
+            {"name": "Unknown", "address": "Highway 42"},
+        ],
+    )
+    # Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results
+    print(database_credentials.fetch_many("SELECT * FROM customers", size=2))
+    print(database_credentials.fetch_one("SELECT * FROM customers"))
+```
 
-sqlalchemy_execute_flow()
+#### Using an AsyncDriver with SqlAlchemyConnector
+
+Use `SqlAlchemyConnector` as an async context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+
+```python
+from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver, ConnectionComponents
+
+async with SqlAlchemyConnector(
+    connection_info=ConnectionComponents(
+        driver=AsyncDriver.SQLITE_AIOSQLITE,
+        database="test.db"
+    ),
+) as database_credentials:
+    await database_credentials.execute(
+        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
+    )
+    await database_credentials.execute(
+        "INSERT INTO customers (name, address) VALUES (:name, :address);",
+        parameters={"name": "Marvin", "address": "Highway 42"},
+    )
+    await database_credentials.execute_many(
+        "INSERT INTO customers (name, address) VALUES (:name, :address);",
+        seq_of_parameters=[
+            {"name": "Ford", "address": "Highway 42"},
+            {"name": "Unknown", "address": "Highway 42"},
+        ],
+    )
+    # Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results
+    print(await database_credentials.fetch_many("SELECT * FROM customers", size=2))
+    print(await database_credentials.fetch_one("SELECT * FROM customers"))
 ```
 
 Use `with_options` to customize options on any existing task or flow
