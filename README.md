@@ -38,17 +38,7 @@ Install `prefect-sqlalchemy` with `pip`:
 pip install prefect-sqlalchemy
 ```
 
-<<<<<<< ours
-Then, register to [view the block](https://orion-docs.prefect.io/ui/blocks/) on Prefect Cloud:
-
-```bash
-prefect block register -m prefect_sqlalchemy
-```
-
-Note, to use the `load` method on Blocks, you must already have a block document [saved through code](https://orion-docs.prefect.io/concepts/blocks/#saving-blocks) or [saved through the UI](https://orion-docs.prefect.io/ui/blocks/).
-=======
 A list of available blocks in `prefect-sqlalchemy` and their setup instructions can be found [here](https://PrefectHQ.github.io/prefect-sqlalchemy/#blocks-catalog).
->>>>>>> theirs
 
 ### Write and run a flow
 
