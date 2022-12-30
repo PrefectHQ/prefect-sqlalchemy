@@ -203,7 +203,8 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         ```python
         from prefect_sqlalchemy import SqlAlchemyConnector
 
-        with SqlAlchemyConnector.load("BLOCK_NAME") as database_block:
+        database_block = SqlAlchemyConnector.load("BLOCK_NAME")
+        with database_block:
             ...
         ```
 
