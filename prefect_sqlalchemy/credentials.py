@@ -175,15 +175,49 @@ class DatabaseCredentials(Block):
     _block_type_name = "Database Credentials"
     _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/3xLant5G70S4vJpmdWCYmr/8fdb19f15b97c3a07c3af3efde4d28fb/download.svg.png?h=250"  # noqa
 
-    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = None
-    username: Optional[str] = None
-    password: Optional[SecretStr] = None
-    database: Optional[str] = None
-    host: Optional[str] = None
-    port: Optional[str] = None
-    query: Optional[Dict[str, str]] = None
-    url: Optional[AnyUrl] = None
-    connect_args: Optional[Dict[str, Any]] = None
+    driver: Optional[Union[AsyncDriver, SyncDriver, str]] = Field(
+        default=None, description="The driver name to use."
+    )
+    username: Optional[str] = Field(
+        default=None, description="The user name used to authenticate."
+    )
+    password: Optional[SecretStr] = Field(
+        default=None, description="The password used to authenticate."
+    )
+    database: Optional[str] = Field(
+        default=None, description="The name of the database to use."
+    )
+    host: Optional[str] = Field(
+        default=None, description="The host address of the database."
+    )
+    port: Optional[str] = Field(
+        default=None, description="The port to connect to the database."
+    )
+    query: Optional[Dict[str, str]] = Field(
+        default=None,
+        description=(
+            "A dictionary of string keys to string values to be passed to the dialect "
+            "and/or the DBAPI upon connect. To specify non-string parameters to a "
+            "Python DBAPI directly, use connect_args."
+        ),
+    )
+    url: Optional[AnyUrl] = Field(
+        default=None,
+        description=(
+            "Manually create and provide a URL to create the engine, this is useful "
+            "for external dialects, e.g. Snowflake, because some of the params, "
+            "such as 'warehouse', is not directly supported in the vanilla "
+            "`sqlalchemy.engine.URL.create` method; do not provide this "
+            "alongside with other URL params as it will raise a `ValueError`."
+        ),
+    )
+    connect_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "The options which will be passed directly to the DBAPI's connect() "
+            "method as additional keyword arguments."
+        ),
+    )
 
     def block_initialization(self):
         """
