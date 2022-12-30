@@ -38,6 +38,7 @@ Install `prefect-sqlalchemy` with `pip`:
 pip install prefect-sqlalchemy
 ```
 
+<<<<<<< ours
 Then, register to [view the block](https://orion-docs.prefect.io/ui/blocks/) on Prefect Cloud:
 
 ```bash
@@ -45,6 +46,9 @@ prefect block register -m prefect_sqlalchemy
 ```
 
 Note, to use the `load` method on Blocks, you must already have a block document [saved through code](https://orion-docs.prefect.io/concepts/blocks/#saving-blocks) or [saved through the UI](https://orion-docs.prefect.io/ui/blocks/).
+=======
+A list of available blocks in `prefect-sqlalchemy` and their setup instructions can be found [here](https://PrefectHQ.github.io/prefect-sqlalchemy/#blocks-catalog).
+>>>>>>> theirs
 
 ### Write and run a flow
 
@@ -77,25 +81,42 @@ def sqlalchemy_execute_flow():
 sqlalchemy_execute_flow()
 ```
 
+Use `with_options` to customize options on any existing task or flow
+
+```python
+custom_sqlalchemy_execute_flow = sqlalchemy_execute_flow.with_options(
+    name="My custom flow name",
+    retries=2,
+    retry_delay_seconds=10,
+)
+```
+
+For more tips on how to use tasks and flows in a Collection, check out [Using Collections](https://orion-docs.prefect.io/collections/usage/)!
+
 ## Resources
 
 If you encounter any bugs while using `prefect-sqlalchemy`, feel free to open an issue in the [prefect-sqlalchemy](https://github.com/PrefectHQ/prefect-sqlalchemy) repository.
 
 If you have any questions or issues while using `prefect-sqlalchemy`, you can find help in either the [Prefect Discourse forum](https://discourse.prefect.io/) or the [Prefect Slack community](https://prefect.io/slack).
 
-Feel free to ⭐️ or watch [`prefect-sqlalchemy`](https://github.com/PrefectHQ/prefect-sqlalchemy) for updates too!
+Feel free to star or watch [`prefect-sqlalchemy`](https://github.com/PrefectHQ/prefect-sqlalchemy) for updates too!
 
-## Development
+## Contribute
 
-If you'd like to install a version of `prefect-sqlalchemy` for development, clone the repository and perform an editable install with `pip`:
+If you'd like to help contribute to fix an issue or add a feature to `prefect-sqlalchemy`, please [propose changes through a pull request from a fork of the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork).
 
-```bash
-git clone https://github.com/PrefectHQ/prefect-sqlalchemy.git
-
-cd prefect-sqlalchemy/
-
+### Contribution Steps:
+1. [Fork the repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository)
+2. [Clone the forked repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo#cloning-your-forked-repository)
+3. Install the repository and its dependencies:
+```
 pip install -e ".[dev]"
-
-# Install linting pre-commit hooks
+```
+4. Make desired changes.
+5. Add tests.
+6. Insert an entry to [CHANGELOG.md](https://github.com/PrefectHQ/prefect-sqlalchemy/blob/main/CHANGELOG.md)
+7. Install `pre-commit` to perform quality checks prior to commit:
+```
 pre-commit install
 ```
+8. `git commit`, `git push`, and create a pull request.
