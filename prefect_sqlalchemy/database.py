@@ -559,8 +559,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                     f"Failed to close connection for input hash {input_hash!r}: {exc}"
                 )
 
-    @sync_compatible
-    async def reset_connections(self) -> None:
+    def reset_connections(self) -> None:
         """
         Tries to close all opened connections and their results.
 
