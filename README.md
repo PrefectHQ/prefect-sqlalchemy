@@ -1,6 +1,8 @@
 # prefect-sqlalchemy
 
 <p align="center">
+    <img src="https://user-images.githubusercontent.com/15331990/217670791-ecce97ef-8f14-4519-85b7-40cd28ac2325.png">
+    <br>
     <a href="https://pypi.python.org/pypi/prefect-sqlalchemy/" alt="PyPI version">
         <img alt="PyPI" src="https://img.shields.io/pypi/v/prefect-sqlalchemy?color=0052FF&labelColor=090422"></a>
     <a href="https://github.com/PrefectHQ/prefect-sqlalchemy/" alt="Stars">
