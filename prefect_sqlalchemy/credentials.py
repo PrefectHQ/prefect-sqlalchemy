@@ -87,6 +87,16 @@ class SyncDriver(Enum):
 class ConnectionComponents(BaseModel):
     """
     Parameters to use to create a SQLAlchemy engine URL.
+
+    Attributes:
+        driver: The driver name to use.
+        database: The name of the database to use.
+        username: The user name used to authenticate.
+        password: The password used to authenticate.
+        host: The host address of the database.
+        port: The port to connect to the database.
+        query: A dictionary of string keys to string values to be passed to the dialect
+            and/or the DBAPI upon connect.
     """
 
     driver: Union[AsyncDriver, SyncDriver, str] = Field(

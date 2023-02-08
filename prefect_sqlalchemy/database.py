@@ -453,7 +453,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
 
         Examples:
             Create an engine.
-            ```
+            ```python
             from prefect_sqlalchemy import SqlalchemyConnector
 
             sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
@@ -461,7 +461,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
             ```
 
             Create a context managed connection.
-            ```
+            ```python
             from prefect_sqlalchemy import SqlalchemyConnector
 
             sqlalchemy_connector = SqlAlchemyConnector.load("BLOCK_NAME")
@@ -559,12 +559,13 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                     f"Failed to close connection for input hash {input_hash!r}: {exc}"
                 )
 
-    def reset_connections(self) -> None:
+    @sync_compatible
+    async def reset_connections(self) -> None:
         """
         Tries to close all opened connections and their results.
 
         Examples:
-            Resets connections so fetch_* methods return new results.
+            Resets connections so `fetch_*` methods return new results.
             ```python
             from prefect_sqlalchemy import SqlAlchemyConnector
 
@@ -588,7 +589,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         Tries to close all opened connections and their results.
 
         Examples:
-            Resets connections so fetch_* methods return new results.
+            Resets connections so `fetch_*` methods return new results.
             ```python
             import asyncio
             from prefect_sqlalchemy import SqlAlchemyConnector

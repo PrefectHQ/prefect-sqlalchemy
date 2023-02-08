@@ -22,110 +22,127 @@ The prefect-sqlalchemy collection makes it easy to connect to a database in your
 
 ## Getting Started
 
-#### Saving Credentials to Block
+### Integrate with Prefect flows
 
-Create a short script, replacing the placeholders (or do so in the UI). 
+Prefect and SQLAlchemy are a data powerhouse duo. With Prefect, your data pipelines are always on track, and with SQLAlchemy, your databases are a snap to handle! Get ready to experience the ultimate data "flow-chemistry"!
 
-Note, the required keywords depend on the desired `driver`.
+To set up a table, use the `execute` and `execute_many` methods. Then, use the `fetch_many` method to retrieve data in a stream until there's no more data.
 
-```python
-from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
+By using the `SqlAlchemyConnector` as a context manager, you can make sure that the SQLAlchemy engine and any connected resources are closed properly after you're done with them.
 
-SqlAlchemyConnector(
-    connection_info=ConnectionComponents(
-        driver=SyncDriver.POSTGRESQL_PSYCOPG2,
-        username="USERNAME_PLACEHOLDER",
-        password="PASSWORD_PLACEHOLDER",
-        host="localhost",
-        port=5432,
-        database="DATABASE_PLACEHOLDER",
+Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#saving-credentials-to-block) to run the examples below!
+
+!!! note "Async support"
+
+    `SqlAlchemyConnector` also supports async workflows! Just be sure to save, load, and use an async driver.
+    ```python
+    from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, AsyncDriver
+
+    connector = SqlAlchemyConnector(
+        connection_info=ConnectionComponents(
+            driver=AsyncDriver.SQLITE_AIOSQLITE,
+            database="DATABASE-PLACEHOLDER.db"
+        )
     )
-)
 
-SqlAlchemyConnector.save("BLOCK_NAME_PLACEHOLDER")
-```
+    connector.save("BLOCK_NAME-PLACEHOLDER")
+    ```
 
-Congrats! You can now easily load the saved block, which holds your credentials:
+=== "Sync"
 
-```python
-from prefect_sqlalchemy import SqlAlchemyConnector
+    ```python
+    from prefect import flow, task
+    from prefect_sqlalchemy import SqlAlchemyConnector
 
-SqlAlchemyConnector.load("BLOCK_NAME_PLACEHOLDER")
-```
 
-#### Connect to SQLite
+    @task
+    def setup_table(block_name: str) -> None:
+        with SqlAlchemyConnector.load(block_name) as connector:
+            connector.execute(
+                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
+            )
+            connector.execute(
+                "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                parameters={"name": "Marvin", "address": "Highway 42"},
+            )
+            connector.execute_many(
+                "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                seq_of_parameters=[
+                    {"name": "Ford", "address": "Highway 42"},
+                    {"name": "Unknown", "address": "Highway 42"},
+                ],
+            )
 
-Use `SqlAlchemyConnector` as a context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+    @task
+    def fetch_data(block_name: str) -> list:
+        all_rows = []
+        with SqlAlchemyConnector.load(block_name) as connector:
+            while True:
+                # Repeated fetch* calls using the same operation will
+                # skip re-executing and instead return the next set of results
+                new_rows = connector.fetch_many("SELECT * FROM customers", size=2)
+                if len(new_rows) == 0:
+                    break
+                all_rows.append(new_rows)
+        return all_rows
 
-```python
-from prefect_sqlalchemy import SqlAlchemyConnector, SyncDriver, ConnectionComponents
+    @flow
+    def sqlalchemy_flow(block_name: str) -> list:
+        setup_table(block_name)
+        all_rows = fetch_data(block_name)
+        return all_rows
 
-with SqlAlchemyConnector(
-    connection_info=ConnectionComponents(
-        driver=SyncDriver.SQLITE_PYSQLITE,
-        database="my.db"
-    ),
-) as database_credentials:
-    database_credentials.execute(
-        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
-    )
-    database_credentials.execute(
-        "INSERT INTO customers (name, address) VALUES (:name, :address);",
-        parameters={"name": "Marvin", "address": "Highway 42"},
-    )
-    database_credentials.execute_many(
-        "INSERT INTO customers (name, address) VALUES (:name, :address);",
-        seq_of_parameters=[
-            {"name": "Ford", "address": "Highway 42"},
-            {"name": "Unknown", "address": "Highway 42"},
-        ],
-    )
-    # Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results
-    print(database_credentials.fetch_many("SELECT * FROM customers", size=2))
-    print(database_credentials.fetch_one("SELECT * FROM customers"))
-```
 
-#### Utilize async
+    sqlalchemy_flow("BLOCK-NAME-PLACEHOLDER")
+    ```
 
-Use `SqlAlchemyConnector` as an async context manager to `execute` and `execute_many` operations; then, `fetch_many` and `fetch_one` operations.
+=== "Async"
 
-```python
-from prefect_sqlalchemy import SqlAlchemyConnector, AsyncDriver, ConnectionComponents
+    ```python
+    from prefect import flow, task
+    from prefect_sqlalchemy import SqlAlchemyConnector
+    import asyncio
 
-async with SqlAlchemyConnector(
-    connection_info=ConnectionComponents(
-        driver=AsyncDriver.SQLITE_AIOSQLITE,
-        database="test.db"
-    ),
-) as database_credentials:
-    await database_credentials.execute(
-        "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
-    )
-    await database_credentials.execute(
-        "INSERT INTO customers (name, address) VALUES (:name, :address);",
-        parameters={"name": "Marvin", "address": "Highway 42"},
-    )
-    await database_credentials.execute_many(
-        "INSERT INTO customers (name, address) VALUES (:name, :address);",
-        seq_of_parameters=[
-            {"name": "Ford", "address": "Highway 42"},
-            {"name": "Unknown", "address": "Highway 42"},
-        ],
-    )
-    # Repeated fetch* calls using the same operation will skip re-executing and instead return the next set of results
-    print(await database_credentials.fetch_many("SELECT * FROM customers", size=2))
-    print(await database_credentials.fetch_one("SELECT * FROM customers"))
-```
+    @task
+    async def setup_table(block_name: str) -> None:
+        async with await SqlAlchemyConnector.load(block_name) as connector:
+            await connector.execute(
+                "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"
+            )
+            await connector.execute(
+                "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                parameters={"name": "Marvin", "address": "Highway 42"},
+            )
+            await connector.execute_many(
+                "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                seq_of_parameters=[
+                    {"name": "Ford", "address": "Highway 42"},
+                    {"name": "Unknown", "address": "Highway 42"},
+                ],
+            )
 
-Use `with_options` to customize options on any existing task or flow
+    @task
+    async def fetch_data(block_name: str) -> list:
+        all_rows = []
+        async with SqlAlchemyConnector.load(block_name) as connector:
+            while True:
+                # Repeated fetch* calls using the same operation will
+                # skip re-executing and instead return the next set of results
+                new_rows = await connector.fetch_many("SELECT * FROM customers", size=2)
+                if len(new_rows) == 0:
+                    break
+                all_rows.append(new_rows)
+        return all_rows
 
-```python
-custom_sqlalchemy_execute_flow = sqlalchemy_execute_flow.with_options(
-    name="My custom flow name",
-    retries=2,
-    retry_delay_seconds=10,
-)
-```
+    @flow
+    async def sqlalchemy_flow(block_name: str) -> list:
+        await setup_table(block_name)
+        all_rows = await fetch_data(block_name)
+        return all_rows
+
+
+    asyncio.run(sqlalchemy_flow("BLOCK-NAME-PLACEHOLDER"))
+    ```
 
 ## Resources
 
@@ -139,13 +156,69 @@ Install `prefect-sqlalchemy` with `pip`:
 pip install prefect-sqlalchemy
 ```
 
-A list of available blocks in `prefect-sqlalchemy` and their setup instructions can be found [here](https://PrefectHQ.github.io/prefect-sqlalchemy/#blocks-catalog).
-
 Requires an installation of Python 3.7+.
 
 We recommend using a Python virtual environment manager such as pipenv, conda or virtualenv.
 
 These tasks are designed to work with Prefect 2.0. For more information about how to use Prefect, please refer to the [Prefect documentation](https://orion-docs.prefect.io/).
+
+### Saving Credentials to Block
+
+To use the `load` method on Blocks, you must already have a block document [saved through code](https://orion-docs.prefect.io/concepts/blocks/#saving-blocks) or [saved through the UI](https://orion-docs.prefect.io/ui/blocks/).
+
+Below is a walkthrough on saving block documents through code; simply create a short script, replacing the placeholders. 
+
+```python
+from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
+
+connector = SqlAlchemyConnector(
+    connection_info=ConnectionComponents(
+        driver=SyncDriver.POSTGRESQL_PSYCOPG2,
+        username="USERNAME-PLACEHOLDER",
+        password="PASSWORD-PLACEHOLDER",
+        host="localhost",
+        port=5432,
+        database="DATABASE-PLACEHOLDER",
+    )
+)
+
+connector.save("BLOCK_NAME-PLACEHOLDER")
+```
+
+Congrats! You can now easily load the saved block, which holds your credentials:
+
+```python
+from prefect_sqlalchemy import SqlAlchemyConnector
+
+SqlAlchemyConnector.load("BLOCK_NAME-PLACEHOLDER")
+```
+
+The required keywords depend on the desired `driver`. For example, sqlite only requires driver and database specified:
+
+```python
+from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
+
+connector = SqlAlchemyConnector(
+    connection_info=ConnectionComponents(
+        driver=SyncDriver.SQLITE_PYSQLITE,
+        database="DATABASE-PLACEHOLDER.db"
+    )
+)
+
+connector.save("BLOCK_NAME-PLACEHOLDER")
+```
+
+!!! info Registering blocks
+
+    Register blocks in this module to
+    [view and edit them](https://orion-docs.prefect.io/ui/blocks/)
+    on Prefect Cloud:
+
+    ```bash
+    prefect block register -m prefect_sqlalchemy
+    ```
+
+A list of available blocks in `prefect-sqlalchemy` and their setup instructions can be found [here](https://PrefectHQ.github.io/prefect-sqlalchemy/blocks_catalog).
 
 ### Feedback
 
