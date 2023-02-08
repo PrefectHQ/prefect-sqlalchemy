@@ -474,3 +474,31 @@ class TestSqlAlchemyConnector:
             with pytest.raises(RuntimeError, match="cannot be run"):
                 async with managed_connector_with_data:
                     pass
+
+    async def test_sync_sqlite_in_flow(self, tmp_path):
+        @flow
+        def a_flow():
+            with SqlAlchemyConnector(
+                connection_info=ConnectionComponents(
+                    driver=SyncDriver.SQLITE_PYSQLITE,
+                    database=str(tmp_path / "test.db"),
+                )
+            ) as conn:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"  # noqa
+                )
+                conn.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": "Highway 42"},
+                )
+                conn.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Space"},
+                        {"name": "Me", "address": "Myway 88"},
+                    ],
+                )
+                return conn.fetch_one("SELECT * FROM customers")
+
+        a_flow() == ("Marvin", "Highway 42")
