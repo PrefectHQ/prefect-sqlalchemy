@@ -290,18 +290,27 @@ class TestSqlAlchemyConnector:
     @pytest.fixture(params=[True, False])
     async def managed_connector_with_data(self, connector_with_data, request):
         if request.param:
+            # managed
             if connector_with_data._driver_is_async:
                 async with connector_with_data:
                     yield connector_with_data
             else:
                 with connector_with_data:
                     yield connector_with_data
+                # need to reset manually because
+                # the function is sync_compatible, but the test is an async function
+                # so calling the close method in this async context results in:
+                # 'SqlAlchemyConnector.reset_connections' was never awaited
+                # but normally it's run in a sync function, which properly closes
+                connector_with_data._reset_cursor_results()
         else:
             yield connector_with_data
             if connector_with_data._driver_is_async:
                 await connector_with_data.aclose()
             else:
-                connector_with_data.close()
+                connector_with_data._reset_cursor_results()
+                connector_with_data._exit_stack.close()
+                connector_with_data._engine = None
         assert connector_with_data._unique_results == {}
         assert connector_with_data._engine is None
 
@@ -344,7 +353,7 @@ class TestSqlAlchemyConnector:
     ):
         with pytest.raises(RuntimeError, match="synchronous connections"):
             if managed_connector_with_data._driver_is_async:
-                managed_connector_with_data.reset_connections()
+                await managed_connector_with_data.reset_connections()
             else:
                 await managed_connector_with_data.reset_async_connections()
 
@@ -366,7 +375,7 @@ class TestSqlAlchemyConnector:
         if managed_connector_with_data._driver_is_async:
             await managed_connector_with_data.reset_async_connections()
         else:
-            managed_connector_with_data.reset_connections()
+            await managed_connector_with_data.reset_connections()
         assert len(managed_connector_with_data._unique_results) == 0
 
         # ensure it's really reset
@@ -396,7 +405,7 @@ class TestSqlAlchemyConnector:
         if managed_connector_with_data._driver_is_async:
             await managed_connector_with_data.reset_async_connections()
         else:
-            managed_connector_with_data.reset_connections()
+            await managed_connector_with_data.reset_connections()
         assert len(managed_connector_with_data._unique_results) == 0
 
         # ensure it's really reset
@@ -431,7 +440,7 @@ class TestSqlAlchemyConnector:
         if managed_connector_with_data._driver_is_async:
             await managed_connector_with_data.reset_async_connections()
         else:
-            managed_connector_with_data.reset_connections()
+            await managed_connector_with_data.reset_connections()
         assert len(managed_connector_with_data._unique_results) == 0
 
         # ensure it's really reset
@@ -449,7 +458,7 @@ class TestSqlAlchemyConnector:
         assert pkl
         assert cloudpickle.loads(pkl)
 
-    async def test_close(self, managed_connector_with_data):
+    def test_close(self, managed_connector_with_data):
         if managed_connector_with_data._driver_is_async:
             with pytest.raises(RuntimeError, match="Please use the"):
                 managed_connector_with_data.close()
@@ -475,7 +484,7 @@ class TestSqlAlchemyConnector:
                 async with managed_connector_with_data:
                     pass
 
-    async def test_sync_sqlite_in_flow(self, tmp_path):
+    def test_sync_sqlite_in_flow(self, tmp_path):
         @flow
         def a_flow():
             with SqlAlchemyConnector(
@@ -501,4 +510,23 @@ class TestSqlAlchemyConnector:
                 )
                 return conn.fetch_one("SELECT * FROM customers")
 
-        a_flow() == ("Marvin", "Highway 42")
+        assert a_flow() == ("Marvin", "Highway 42")
+
+    def test_sync_compatible_reset_connections(self, tmp_path):
+        conn = SqlAlchemyConnector(
+            connection_info=ConnectionComponents(
+                driver=SyncDriver.SQLITE_PYSQLITE,
+                database=str(tmp_path / "test.db"),
+            )
+        )
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"  # noqa
+        )
+        conn.execute(
+            "INSERT INTO customers (name, address) VALUES (:name, :address);",
+            parameters={"name": "Marvin", "address": "Highway 42"},
+        )
+        conn.fetch_one("SELECT * FROM customers")
+        assert len(conn._unique_results) == 1
+        conn.reset_connections()
+        assert len(conn._unique_results) == 0
