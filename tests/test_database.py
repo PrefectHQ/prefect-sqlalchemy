@@ -261,13 +261,15 @@ class TestSqlAlchemyConnector:
         credentials_url = SqlAlchemyConnector(connection_info=connection_url)
         assert credentials_components._rendered_url == credentials_url._rendered_url
 
-    def test_delay_start(self):
+    def test_delay_start(self, caplog):
         with SqlAlchemyConnector(
             connection_info=ConnectionComponents(
                 driver=SyncDriver.SQLITE_PYSQLITE,
                 database=":memory:",
             ),
         ) as connector:
+            connector.reset_connections()
+            assert caplog.records[0].msg == "There were no connections to reset."
             assert connector._engine is None
             assert connector._unique_results is None
             assert connector._exit_stack is None

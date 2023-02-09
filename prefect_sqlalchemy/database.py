@@ -572,6 +572,11 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                 f"{self._rendered_url.drivername} has no synchronous connections. "
                 f"Please use the `reset_async_connections` method instead."
             )
+
+        if self._exit_stack is None:
+            self.logger.info("There were no connections to reset.")
+            return
+
         self._reset_cursor_results()
         self._exit_stack.close()
         self.logger.info("Reset opened connections and their results.")
@@ -600,6 +605,11 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                 f"{self._rendered_url.drivername} has no asynchronous connections. "
                 f"Please use the `reset_connections` method instead."
             )
+
+        if self._exit_stack is None:
+            self.logger.info("There were no connections to reset.")
+            return
+
         self._reset_cursor_results()
         await self._exit_stack.aclose()
         self.logger.info("Reset opened connections and their results.")
