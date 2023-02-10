@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Delay start of engine until necessary - [#46](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/46)
+
 ### Deprecated
 
 ### Removed

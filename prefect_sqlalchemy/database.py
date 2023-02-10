@@ -301,21 +301,6 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         except ValueError:
             self._driver_is_async = False
 
-        if self._engine is None:
-            self._start_engine()
-
-        if self._exit_stack is None:
-            self._start_exit_stack()
-
-        if self._unique_results is None:
-            self._unique_results = {}
-
-    def _start_engine(self):
-        """
-        Starts SQLAlchemy database engine.
-        """
-        self._engine = self.get_engine()
-
     def _start_exit_stack(self):
         """
         Starts an AsyncExitStack or ExitStack depending on whether driver is async.
@@ -390,6 +375,14 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         else:
             engine = create_engine(**engine_kwargs)
         self.logger.info("Created a new engine.")
+
+        if self._engine is None:
+            self._engine = engine
+        if self._exit_stack is None:
+            self._start_exit_stack()
+        if self._unique_results is None:
+            self._unique_results = {}
+
         return engine
 
     def get_connection(
@@ -580,6 +573,11 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                 f"{self._rendered_url.drivername} has no synchronous connections. "
                 f"Please use the `reset_async_connections` method instead."
             )
+
+        if self._exit_stack is None:
+            self.logger.info("There were no connections to reset.")
+            return
+
         self._reset_cursor_results()
         self._exit_stack.close()
         self.logger.info("Reset opened connections and their results.")
@@ -608,6 +606,11 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
                 f"{self._rendered_url.drivername} has no asynchronous connections. "
                 f"Please use the `reset_connections` method instead."
             )
+
+        if self._exit_stack is None:
+            self.logger.info("There were no connections to reset.")
+            return
+
         self._reset_cursor_results()
         await self._exit_stack.aclose()
         self.logger.info("Reset opened connections and their results.")
@@ -935,6 +938,3 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
     def __setstate__(self, data: dict):
         """Upon loading back, restart the engine and results."""
         self.__dict__.update(data)
-        self._start_engine()  # block initialization doesn't get called here
-        self._start_exit_stack()
-        self._unique_results = {}

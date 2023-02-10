@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import ExitStack, asynccontextmanager, contextmanager
 from unittest.mock import MagicMock
 
 import cloudpickle
@@ -260,6 +260,23 @@ class TestSqlAlchemyConnector:
         connection_url = "postgresql+psycopg2://myusername:mypass@localhost:1234/my.db"
         credentials_url = SqlAlchemyConnector(connection_info=connection_url)
         assert credentials_components._rendered_url == credentials_url._rendered_url
+
+    def test_delay_start(self, caplog):
+        with SqlAlchemyConnector(
+            connection_info=ConnectionComponents(
+                driver=SyncDriver.SQLITE_PYSQLITE,
+                database=":memory:",
+            ),
+        ) as connector:
+            connector.reset_connections()
+            assert caplog.records[0].msg == "There were no connections to reset."
+            assert connector._engine is None
+            assert connector._unique_results is None
+            assert connector._exit_stack is None
+            connector.execute("SELECT 1")
+            assert isinstance(connector._engine, Engine)
+            assert connector._unique_results == {}
+            assert isinstance(connector._exit_stack, ExitStack)
 
     @pytest.fixture(params=[SyncDriver.SQLITE_PYSQLITE, AsyncDriver.SQLITE_AIOSQLITE])
     async def connector_with_data(self, tmp_path, request):
