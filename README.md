@@ -210,7 +210,7 @@ connector = SqlAlchemyConnector(
 connector.save("BLOCK_NAME-PLACEHOLDER")
 ```
 
-!!! info Registering blocks
+!!! info "Registering blocks"
 
     Register blocks in this module to
     [view and edit them](https://orion-docs.prefect.io/ui/blocks/)

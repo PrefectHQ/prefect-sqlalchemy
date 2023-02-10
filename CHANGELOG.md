@@ -11,17 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Delay start of engine until necessary - [#46](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/46)
-
 ### Deprecated
 
 ### Removed
 
 ### Fixed
 
-- Using SQLite driver in sync context - [#45](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/45)
-
 ### Security
+
+## 0.2.3
+
+Released on February 10th, 2022.
+
+### Changed
+
+- Delay start of engine until necessary - [#46](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/46)
+
+### Fixed
+
+- Using SQLite driver in sync context - [#45](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/45)
 
 ## 0.2.2
 
