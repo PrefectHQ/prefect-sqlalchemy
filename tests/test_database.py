@@ -269,10 +269,12 @@ class TestSqlAlchemyConnector:
             ),
         ) as connector:
             connector.reset_connections()
-            assert caplog.records[0].msg == "There were no connections to reset."
+            assert (
+                caplog.records[0].msg == "Reset opened connections and their results."
+            )
             assert connector._engine is None
-            assert connector._unique_results is None
-            assert connector._exit_stack is None
+            assert connector._unique_results == {}
+            assert isinstance(connector._exit_stack, ExitStack)
             connector.execute("SELECT 1")
             assert isinstance(connector._engine, Engine)
             assert connector._unique_results == {}
