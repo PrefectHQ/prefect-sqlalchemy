@@ -301,6 +301,12 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         except ValueError:
             self._driver_is_async = False
 
+        if self._unique_results is None:
+            self._unique_results = {}
+
+        if self._exit_stack is None:
+            self._start_exit_stack()
+
     def _start_exit_stack(self):
         """
         Starts an AsyncExitStack or ExitStack depending on whether driver is async.
@@ -378,10 +384,6 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
 
         if self._engine is None:
             self._engine = engine
-        if self._exit_stack is None:
-            self._start_exit_stack()
-        if self._unique_results is None:
-            self._unique_results = {}
 
         return engine
 
@@ -938,3 +940,9 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
     def __setstate__(self, data: dict):
         """Upon loading back, restart the engine and results."""
         self.__dict__.update(data)
+
+        if self._unique_results is None:
+            self._unique_results = {}
+
+        if self._exit_stack is None:
+            self._start_exit_stack()

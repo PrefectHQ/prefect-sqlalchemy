@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import cloudpickle
 import pytest
-from prefect import flow
+from prefect import flow, task
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -547,3 +547,52 @@ class TestSqlAlchemyConnector:
         assert len(conn._unique_results) == 1
         conn.reset_connections()
         assert len(conn._unique_results) == 0
+
+    def test_flow_without_initialized_engine(self, tmp_path):
+        @task
+        def setup_table(block_name: str) -> None:
+            with SqlAlchemyConnector.load(block_name) as connector:
+                connector.execute(
+                    "CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);"  # noqa
+                )
+                connector.execute(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    parameters={"name": "Marvin", "address": "Highway 42"},
+                )
+                connector.execute_many(
+                    "INSERT INTO customers (name, address) VALUES (:name, :address);",
+                    seq_of_parameters=[
+                        {"name": "Ford", "address": "Highway 42"},
+                        {"name": "Unknown", "address": "Highway 42"},
+                    ],
+                )
+
+        @task
+        def fetch_data(block_name: str) -> list:
+            all_rows = []
+            with SqlAlchemyConnector.load(block_name) as connector:
+                while True:
+                    # Repeated fetch* calls using the same operation will
+                    # skip re-executing and instead return the next set of results
+                    new_rows = connector.fetch_many("SELECT * FROM customers", size=2)
+                    if len(new_rows) == 0:
+                        break
+                    all_rows.append(new_rows)
+            return all_rows
+
+        @flow
+        def sqlalchemy_flow(block_name: str) -> list:
+            SqlAlchemyConnector(
+                connection_info=ConnectionComponents(
+                    driver=SyncDriver.SQLITE_PYSQLITE,
+                    database=str(tmp_path / "test.db"),
+                )
+            ).save(block_name)
+            setup_table(block_name)
+            all_rows = fetch_data(block_name)
+            return all_rows
+
+        assert sqlalchemy_flow("connector") == [
+            [("Marvin", "Highway 42"), ("Ford", "Highway 42")],
+            [("Unknown", "Highway 42")],
+        ]
