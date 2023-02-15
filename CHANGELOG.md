@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## 0.2.4
+
+Released on February 15th, 2022.
+
+### Fixed
+
+- Initializing `_unique_results` and `_exit_stack` so `fetch_*` is able to run - [#49](https://github.com/PrefectHQ/prefect-sqlalchemy/pull/49)
+
 ## 0.2.3
 
 Released on February 10th, 2022.
