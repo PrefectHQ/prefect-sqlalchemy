@@ -261,13 +261,16 @@ class TestSqlAlchemyConnector:
         credentials_url = SqlAlchemyConnector(connection_info=connection_url)
         assert credentials_components._rendered_url == credentials_url._rendered_url
 
-    def test_delay_start(self, caplog):
+    @pytest.mark.parametrize("method", ["fetch_all", "execute"])
+    def test_delay_start(self, caplog, method):
         with SqlAlchemyConnector(
             connection_info=ConnectionComponents(
                 driver=SyncDriver.SQLITE_PYSQLITE,
                 database=":memory:",
             ),
         ) as connector:
+            assert connector._unique_results == {}
+            assert isinstance(connector._exit_stack, ExitStack)
             connector.reset_connections()
             assert (
                 caplog.records[0].msg == "Reset opened connections and their results."
@@ -275,9 +278,12 @@ class TestSqlAlchemyConnector:
             assert connector._engine is None
             assert connector._unique_results == {}
             assert isinstance(connector._exit_stack, ExitStack)
-            connector.execute("SELECT 1")
+            getattr(connector, method)("SELECT 1")
             assert isinstance(connector._engine, Engine)
-            assert connector._unique_results == {}
+            if method == "execute":
+                assert connector._unique_results == {}
+            else:
+                assert len(connector._unique_results) == 1
             assert isinstance(connector._exit_stack, ExitStack)
 
     @pytest.fixture(params=[SyncDriver.SQLITE_PYSQLITE, AsyncDriver.SQLITE_AIOSQLITE])
