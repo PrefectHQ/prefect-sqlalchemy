@@ -21,6 +21,8 @@ def test_sqlalchemy_credentials_post_init_url_param_conflict(url_param):
         url_params = {url_param: url_param}
         if url_param == "query":
             url_params["query"] = {"query": "query"}
+        elif url_param == "port":
+            url_params["port"] = 5432
         with pytest.raises(
             ValueError, match="The `url` should not be provided alongside"
         ):
