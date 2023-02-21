@@ -112,7 +112,7 @@ class ConnectionComponents(BaseModel):
     host: Optional[str] = Field(
         default=None, description="The host address of the database."
     )
-    port: Optional[str] = Field(
+    port: Optional[int] = Field(
         default=None, description="The port to connect to the database."
     )
     query: Optional[Dict[str, str]] = Field(
@@ -201,7 +201,7 @@ class DatabaseCredentials(Block):
     host: Optional[str] = Field(
         default=None, description="The host address of the database."
     )
-    port: Optional[str] = Field(
+    port: Optional[int] = Field(
         default=None, description="The port to connect to the database."
     )
     query: Optional[Dict[str, str]] = Field(

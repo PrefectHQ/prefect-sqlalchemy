@@ -161,7 +161,7 @@ def test_save_load_roundtrip():
     assert loaded_credentials.password.get_secret_value() == "test-password"
     assert loaded_credentials.database == "test-database"
     assert loaded_credentials.host == "localhost"
-    assert loaded_credentials.port == "5678"
+    assert loaded_credentials.port == 5678
     assert loaded_credentials.rendered_url == credentials.rendered_url
 
 
@@ -182,6 +182,7 @@ def test_sqlalchemy_connection_components_create_url_optional_params():
         port=1234,
         host="localhost",
     )
+    assert isinstance(connection_components.port, int)
     actual = connection_components.create_url()
     assert actual == make_url(
         "postgresql+psycopg2://myusername:mypass@localhost:1234/my.db"
