@@ -7,7 +7,7 @@
         <img alt="PyPI" src="https://img.shields.io/pypi/v/prefect-sqlalchemy?color=0052FF&labelColor=090422"></a>
     <a href="https://github.com/PrefectHQ/prefect-sqlalchemy/" alt="Stars">
         <img src="https://img.shields.io/github/stars/PrefectHQ/prefect-sqlalchemy?color=0052FF&labelColor=090422" /></a>
-    <a href="https://pepy.tech/badge/prefect-sqlalchemy/" alt="Downloads">
+    <a href="https://pypistats.org/packages/prefect-sqlalchemy/" alt="Downloads">
         <img src="https://img.shields.io/pypi/dm/prefect-sqlalchemy?color=0052FF&labelColor=090422" /></a>
     <a href="https://github.com/PrefectHQ/prefect-sqlalchemy/pulse" alt="Activity">
         <img src="https://img.shields.io/github/commit-activity/m/PrefectHQ/prefect-sqlalchemy?color=0052FF&labelColor=090422" /></a>
@@ -148,7 +148,7 @@ Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#savi
 
 ## Resources
 
-For more tips on how to use tasks and flows in a Collection, check out [Using Collections](https://orion-docs.prefect.io/collections/usage/)!
+For more tips on how to use tasks and flows in a Collection, check out [Using Collections](https://docs.prefect.io/collections/usage/)!
 
 ### Installation
 
@@ -213,7 +213,7 @@ connector.save("BLOCK_NAME-PLACEHOLDER")
 !!! info "Registering blocks"
 
     Register blocks in this module to
-    [view and edit them](https://orion-docs.prefect.io/ui/blocks/)
+    [view and edit them](https://docs.prefect.io/ui/blocks/)
     on Prefect Cloud:
 
     ```bash
