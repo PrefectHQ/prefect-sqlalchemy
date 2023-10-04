@@ -5,7 +5,13 @@ from enum import Enum
 from typing import Any, Dict, Optional, Union
 
 from prefect.blocks.core import Block
-from pydantic import AnyUrl, BaseModel, Field, SecretStr
+from pydantic import VERSION as PYDANTIC_VERSION
+
+if PYDANTIC_VERSION.startswith("2."):
+    from pydantic.v1 import AnyUrl, BaseModel, Field, SecretStr
+else:
+    from pydantic import AnyUrl, BaseModel, Field, SecretStr
+
 from sqlalchemy.engine import Connection, create_engine
 from sqlalchemy.engine.url import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine

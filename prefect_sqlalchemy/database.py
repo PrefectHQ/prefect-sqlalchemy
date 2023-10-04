@@ -9,7 +9,13 @@ from prefect import task
 from prefect.blocks.abstract import CredentialsBlock, DatabaseBlock
 from prefect.utilities.asyncutils import sync_compatible
 from prefect.utilities.hashing import hash_objects
-from pydantic import AnyUrl, Field, SecretStr
+from pydantic import VERSION as PYDANTIC_VERSION
+
+if PYDANTIC_VERSION.startswith("2."):
+    from pydantic.v1 import AnyUrl, Field, SecretStr
+else:
+    from pydantic import AnyUrl, Field, SecretStr
+
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL, make_url
