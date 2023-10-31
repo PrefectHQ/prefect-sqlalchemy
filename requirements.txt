@@ -1,2 +1,2 @@
-prefect>=2.7.0
+prefect>=2.13.5
 sqlalchemy>=1.4.31,<2
