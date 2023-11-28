@@ -244,7 +244,7 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
     """
 
     _block_type_name = "SQLAlchemy Connector"
-    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/37TOcxeP9kfXffpKVRAHiJ/0f359112e79d0bd3dfe38c73c4fc6363/sqlalchemy.png?h=250"  # noqa
+    _logo_url = "https://cdn.sanity.io/images/3ugk85nk/production/3c7dff04f70aaf4528e184a3b028f9e40b98d68c-250x250.png"  # noqa
     _documentation_url = "https://prefecthq.github.io/prefect-sqlalchemy/database/#prefect_sqlalchemy.database.SqlAlchemyConnector"  # noqa
 
     connection_info: Union[ConnectionComponents, AnyUrl] = Field(
