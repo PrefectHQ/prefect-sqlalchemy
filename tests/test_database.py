@@ -2,8 +2,10 @@ from contextlib import ExitStack, asynccontextmanager, contextmanager
 from unittest.mock import MagicMock
 
 import cloudpickle
+import contextlib
 import pytest
 from prefect import flow, task
+from sqlalchemy import __version__ as SQLALCHEMY_VERSION
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -87,6 +89,9 @@ class SQLAlchemyConnectionMock:
             * size
         )
         return cursor_result
+
+    def commit(self):
+        pass
 
 
 @pytest.fixture()
@@ -346,7 +351,11 @@ class TestSqlAlchemyConnector:
             engine_type = (
                 AsyncEngine if managed_connector_with_data._driver_is_async else Engine
             )
-            assert isinstance(connection, engine_type._trans_ctx)
+
+            if SQLALCHEMY_VERSION.startswith("1."):
+                assert isinstance(connection, engine_type._trans_ctx)
+            else:
+                assert isinstance(connection, (contextlib._GeneratorContextManager, contextlib._AsyncGeneratorContextManager))
         else:
             engine_type = (
                 AsyncConnection
@@ -364,7 +373,10 @@ class TestSqlAlchemyConnector:
             engine_type = (
                 AsyncEngine if managed_connector_with_data._driver_is_async else Engine
             )
-            assert isinstance(connection, engine_type._trans_ctx)
+            if SQLALCHEMY_VERSION.startswith("1."):
+                assert isinstance(connection, engine_type._trans_ctx)
+            else:
+                assert isinstance(connection, (contextlib._GeneratorContextManager, contextlib._AsyncGeneratorContextManager))
         else:
             engine_type = (
                 AsyncConnection
