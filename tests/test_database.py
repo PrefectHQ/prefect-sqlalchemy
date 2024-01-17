@@ -1,8 +1,8 @@
+import contextlib
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from unittest.mock import MagicMock
 
 import cloudpickle
-import contextlib
 import pytest
 from prefect import flow, task
 from sqlalchemy import __version__ as SQLALCHEMY_VERSION
@@ -355,7 +355,13 @@ class TestSqlAlchemyConnector:
             if SQLALCHEMY_VERSION.startswith("1."):
                 assert isinstance(connection, engine_type._trans_ctx)
             else:
-                assert isinstance(connection, (contextlib._GeneratorContextManager, contextlib._AsyncGeneratorContextManager))
+                assert isinstance(
+                    connection,
+                    (
+                        contextlib._GeneratorContextManager,
+                        contextlib._AsyncGeneratorContextManager,
+                    ),
+                )
         else:
             engine_type = (
                 AsyncConnection
@@ -376,7 +382,13 @@ class TestSqlAlchemyConnector:
             if SQLALCHEMY_VERSION.startswith("1."):
                 assert isinstance(connection, engine_type._trans_ctx)
             else:
-                assert isinstance(connection, (contextlib._GeneratorContextManager, contextlib._AsyncGeneratorContextManager))
+                assert isinstance(
+                    connection,
+                    (
+                        contextlib._GeneratorContextManager,
+                        contextlib._AsyncGeneratorContextManager,
+                    ),
+                )
         else:
             engine_type = (
                 AsyncConnection
