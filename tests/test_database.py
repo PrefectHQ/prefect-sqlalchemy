@@ -1,4 +1,3 @@
-import contextlib
 from contextlib import ExitStack, asynccontextmanager, contextmanager
 from unittest.mock import MagicMock
 
@@ -345,7 +344,7 @@ class TestSqlAlchemyConnector:
         assert connector_with_data._engine is None
 
     @pytest.mark.parametrize("begin", [True, False])
-    def test_get_connection(self, begin, managed_connector_with_data):
+    async def test_get_connection(self, begin, managed_connector_with_data):
         connection = managed_connector_with_data.get_connection(begin=begin)
         if begin:
             engine_type = (
@@ -354,14 +353,12 @@ class TestSqlAlchemyConnector:
 
             if SQLALCHEMY_VERSION.startswith("1."):
                 assert isinstance(connection, engine_type._trans_ctx)
+            elif managed_connector_with_data._driver_is_async:
+                async with connection as conn:
+                    assert isinstance(conn, engine_type._connection_cls)
             else:
-                assert isinstance(
-                    connection,
-                    (
-                        contextlib._GeneratorContextManager,
-                        contextlib._AsyncGeneratorContextManager,
-                    ),
-                )
+                with connection as conn:
+                    assert isinstance(conn, engine_type._connection_cls)
         else:
             engine_type = (
                 AsyncConnection
@@ -371,7 +368,7 @@ class TestSqlAlchemyConnector:
             assert isinstance(connection, engine_type)
 
     @pytest.mark.parametrize("begin", [True, False])
-    def test_get_client(self, begin, managed_connector_with_data):
+    async def test_get_client(self, begin, managed_connector_with_data):
         connection = managed_connector_with_data.get_client(
             client_type="connection", begin=begin
         )
@@ -381,14 +378,12 @@ class TestSqlAlchemyConnector:
             )
             if SQLALCHEMY_VERSION.startswith("1."):
                 assert isinstance(connection, engine_type._trans_ctx)
+            elif managed_connector_with_data._driver_is_async:
+                async with connection as conn:
+                    assert isinstance(conn, engine_type._connection_cls)
             else:
-                assert isinstance(
-                    connection,
-                    (
-                        contextlib._GeneratorContextManager,
-                        contextlib._AsyncGeneratorContextManager,
-                    ),
-                )
+                with connection as conn:
+                    assert isinstance(conn, engine_type._connection_cls)
         else:
             engine_type = (
                 AsyncConnection
