@@ -16,6 +16,7 @@ if PYDANTIC_VERSION.startswith("2."):
 else:
     from pydantic import AnyUrl, Field, SecretStr
 
+from sqlalchemy import __version__ as SQLALCHEMY_VERSION
 from sqlalchemy.engine import Connection, Engine, create_engine
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.engine.url import URL, make_url
@@ -67,6 +68,8 @@ async def _execute(
     if async_supported:
         result = await result
         await connection.commit()
+    elif SQLALCHEMY_VERSION.startswith("2."):
+        connection.commit()
     return result
 
 
@@ -497,6 +500,8 @@ class SqlAlchemyConnector(CredentialsBlock, DatabaseBlock):
         if self._driver_is_async:
             result_set = await result_set
             await connection.commit()  # very important
+        elif SQLALCHEMY_VERSION.startswith("2."):
+            connection.commit()
         return result_set
 
     @asynccontextmanager
