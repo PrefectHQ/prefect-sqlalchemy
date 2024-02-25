@@ -95,7 +95,7 @@ Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#savi
         return all_rows
 
 
-    sqlalchemy_flow("BLOCK-NAME-PLACEHOLDER")
+    sqlalchemy_flow("BLOCK_NAME-PLACEHOLDER")
     ```
 
 === "Async"
@@ -143,7 +143,7 @@ Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#savi
         return all_rows
 
 
-    asyncio.run(sqlalchemy_flow("BLOCK-NAME-PLACEHOLDER"))
+    asyncio.run(sqlalchemy_flow("BLOCK_NAME-PLACEHOLDER"))
     ```
 
 ## Resources
