@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="img/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.4">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.11">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.50c56a3b.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.7e359304.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
@@ -104,7 +104,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="." title="prefect-sqlalchemy" class="md-header__button md-logo" aria-label="prefect-sqlalchemy" data-md-component="logo">
       
-  <img src="img/prefect-logo-mark-solid-white-500.png" alt="logo">
+  <img src="img/prefect-logo-mark.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -246,7 +246,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="." title="prefect-sqlalchemy" class="md-nav__button md-logo" aria-label="prefect-sqlalchemy" data-md-component="logo">
       
-  <img src="img/prefect-logo-mark-solid-white-500.png" alt="logo">
+  <img src="img/prefect-logo-mark.png" alt="logo">
 
     </a>
     prefect-sqlalchemy
@@ -321,11 +321,11 @@
         <li class="md-nav__item">
   <a href="#getting-started" class="md-nav__link">
     <span class="md-ellipsis">
-      Getting Started
+      Getting started
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
+    <nav class="md-nav" aria-label="Getting started">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -362,9 +362,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#saving-credentials-to-block" class="md-nav__link">
+  <a href="#saving-credentials-to-a-block" class="md-nav__link">
     <span class="md-ellipsis">
-      Saving Credentials to Block
+      Saving credentials to a block
     </span>
   </a>
   
@@ -451,10 +451,8 @@
     
     
     
-    
     <li class="md-nav__item md-nav__item--nested">
       
-        
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
@@ -556,11 +554,11 @@
         <li class="md-nav__item">
   <a href="#getting-started" class="md-nav__link">
     <span class="md-ellipsis">
-      Getting Started
+      Getting started
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Getting Started">
+    <nav class="md-nav" aria-label="Getting started">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -597,9 +595,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#saving-credentials-to-block" class="md-nav__link">
+  <a href="#saving-credentials-to-a-block" class="md-nav__link">
     <span class="md-ellipsis">
-      Saving Credentials to Block
+      Saving credentials to a block
     </span>
   </a>
   
@@ -648,8 +646,6 @@
 
 <h1 id="prefect-sqlalchemy">prefect-sqlalchemy</h1>
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/15331990/217670791-ecce97ef-8f14-4519-85b7-40cd28ac2325.png">
-    <br>
     <a href="https://pypi.python.org/pypi/prefect-sqlalchemy/" alt="PyPI version">
         <img alt="PyPI" src="https://img.shields.io/pypi/v/prefect-sqlalchemy?color=0052FF&labelColor=090422"></a>
     <a href="https://github.com/PrefectHQ/prefect-sqlalchemy/" alt="Stars">
@@ -661,20 +657,18 @@
     <br>
     <a href="https://prefect-community.slack.com" alt="Slack">
         <img src="https://img.shields.io/badge/slack-join_community-red.svg?color=0052FF&labelColor=090422&logo=slack" /></a>
-    <a href="https://discourse.prefect.io/" alt="Discourse">
-        <img src="https://img.shields.io/badge/discourse-browse_forum-red.svg?color=0052FF&labelColor=090422&logo=discourse" /></a>
 </p>
 
 <p>The prefect-sqlalchemy collection makes it easy to connect to a database in your Prefect flows. Check out the examples below to get started!</p>
-<h2 id="getting-started">Getting Started</h2>
+<h2 id="getting-started">Getting started</h2>
 <h3 id="integrate-with-prefect-flows">Integrate with Prefect flows</h3>
-<p>Prefect and SQLAlchemy are a data powerhouse duo. With Prefect, your data pipelines are always on track, and with SQLAlchemy, your databases are a snap to handle! Get ready to experience the ultimate data "flow-chemistry"!</p>
+<p>Prefect and SQLAlchemy are a data powerhouse duo. With Prefect, your workflows are orchestratable and observable, and with SQLAlchemy, your databases are a snap to handle! Get ready to experience the ultimate data "flow-chemistry"!</p>
 <p>To set up a table, use the <code>execute</code> and <code>execute_many</code> methods. Then, use the <code>fetch_many</code> method to retrieve data in a stream until there's no more data.</p>
 <p>By using the <code>SqlAlchemyConnector</code> as a context manager, you can make sure that the SQLAlchemy engine and any connected resources are closed properly after you're done with them.</p>
-<p>Be sure to install <a href="#installation">prefect-sqlalchemy</a> and <a href="#saving-credentials-to-block">save to block</a> to run the examples below!</p>
+<p>Be sure to install <a href="#installation">prefect-sqlalchemy</a> and <a href="#saving-credentials-to-block">save your credentials to a Prefect block</a> to run the examples below!</p>
 <div class="admonition note">
 <p class="admonition-title">Async support</p>
-<p><code>SqlAlchemyConnector</code> also supports async workflows! Just be sure to save, load, and use an async driver.
+<p><code>SqlAlchemyConnector</code> also supports async workflows! Just be sure to save, load, and use an async driver as in the example below.</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">ConnectionComponents</span><span class="p">,</span> <span class="n">AsyncDriver</span>
 
 <span class="n">connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
@@ -685,7 +679,7 @@
 <span class="p">)</span>
 
 <span class="n">connector</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME-PLACEHOLDER&quot;</span><span class="p">)</span>
-</code></pre></div></p>
+</code></pre></div>
 </div>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Async</label></div>
 <div class="tabbed-content">
@@ -784,16 +778,16 @@
 </div>
 </div>
 <h2 id="resources">Resources</h2>
-<p>For more tips on how to use tasks and flows in a Collection, check out <a href="https://orion-docs.prefect.io/collections/usage/">Using Collections</a>!</p>
+<p>For more tips on how to use tasks and flows provided in a Prefect integration library, check out the <a href="https://docs.prefect.io/integrations/usage/">Prefect docs on using integrations</a>.</p>
 <h3 id="installation">Installation</h3>
 <p>Install <code>prefect-sqlalchemy</code> with <code>pip</code>:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>prefect-sqlalchemy
 </code></pre></div>
-<p>Requires an installation of Python 3.7+.</p>
-<p>We recommend using a Python virtual environment manager such as pipenv, conda or virtualenv.</p>
-<p>These tasks are designed to work with Prefect 2.0. For more information about how to use Prefect, please refer to the <a href="https://orion-docs.prefect.io/">Prefect documentation</a>.</p>
-<h3 id="saving-credentials-to-block">Saving Credentials to Block</h3>
-<p>To use the <code>load</code> method on Blocks, you must already have a block document <a href="https://orion-docs.prefect.io/concepts/blocks/#saving-blocks">saved through code</a> or <a href="https://orion-docs.prefect.io/ui/blocks/">saved through the UI</a>.</p>
+<p>Requires an installation of Python 3.8 or higher.</p>
+<p>We recommend using a Python virtual environment manager such as pipenv, conda, or virtualenv.</p>
+<p>The tasks in this library are designed to work with Prefect 2. For more information about how to use Prefect, please refer to the <a href="https://docs.prefect.io/">Prefect documentation</a>.</p>
+<h3 id="saving-credentials-to-a-block">Saving credentials to a block</h3>
+<p>To use the <code>load</code> method on Blocks, you must have a block document <a href="https://docs.prefect.io/concepts/blocks/#saving-blocks">saved through code</a> or saved through the UI.</p>
 <p>Below is a walkthrough on saving block documents through code; simply create a short script, replacing the placeholders. </p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">ConnectionComponents</span><span class="p">,</span> <span class="n">SyncDriver</span>
 
@@ -815,7 +809,7 @@
 
 <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME-PLACEHOLDER&quot;</span><span class="p">)</span>
 </code></pre></div>
-<p>The required keywords depend on the desired <code>driver</code>. For example, sqlite only requires driver and database specified:</p>
+<p>The required keywords depend upon the desired driver. For example, SQLite requires only the <code>driver</code> and <code>database</code> arguments:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">ConnectionComponents</span><span class="p">,</span> <span class="n">SyncDriver</span>
 
 <span class="n">connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
@@ -837,9 +831,9 @@ on Prefect Cloud:</p>
 </div>
 <p>A list of available blocks in <code>prefect-sqlalchemy</code> and their setup instructions can be found <a href="https://PrefectHQ.github.io/prefect-sqlalchemy/blocks_catalog">here</a>.</p>
 <h3 id="feedback">Feedback</h3>
-<p>If you encounter any bugs while using <code>prefect-sqlalchemy</code>, feel free to open an issue in the <a href="https://github.com/PrefectHQ/prefect-sqlalchemy">prefect-sqlalchemy</a> repository.</p>
-<p>If you have any questions or issues while using <code>prefect-sqlalchemy</code>, you can find help in either the <a href="https://discourse.prefect.io/">Prefect Discourse forum</a> or the <a href="https://prefect.io/slack">Prefect Slack community</a>.</p>
-<p>Feel free to star or watch <a href="https://github.com/PrefectHQ/prefect-sqlalchemy"><code>prefect-sqlalchemy</code></a> for updates too!</p>
+<p>If you encounter any bugs while using <code>prefect-sqlalchemy</code>, please open an issue in the <a href="https://github.com/PrefectHQ/prefect-sqlalchemy">prefect-sqlalchemy</a> repository.</p>
+<p>If you have any questions or issues while using <code>prefect-sqlalchemy</code>, you can find help in the <a href="https://prefect.io/slack">Prefect Community Slack </a>.</p>
+<p>Feel free to star or watch <a href="https://github.com/PrefectHQ/prefect-sqlalchemy"><code>prefect-sqlalchemy</code></a> for updates!</p>
 <h3 id="contributing">Contributing</h3>
 <p>If you'd like to help contribute to fix an issue or add a feature to <code>prefect-sqlalchemy</code>, please <a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork">propose changes through a pull request from a fork of the repository</a>.</p>
 <p>Here are the steps:</p>
@@ -1008,10 +1002,10 @@ on Prefect Cloud:</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.copy", "content.code.annotate"], "search": "assets/javascripts/workers/search.c011b7c0.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.copy", "content.code.annotate"], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.7389ff0e.min.js"></script>
+      <script src="assets/javascripts/bundle.8fd75fb4.min.js"></script>
       
     
   </body>

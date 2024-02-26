@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../img/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.4">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.11">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.7e359304.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -106,7 +106,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="prefect-sqlalchemy" class="md-header__button md-logo" aria-label="prefect-sqlalchemy" data-md-component="logo">
       
-  <img src="../img/prefect-logo-mark-solid-white-500.png" alt="logo">
+  <img src="../img/prefect-logo-mark.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -248,7 +248,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="prefect-sqlalchemy" class="md-nav__button md-logo" aria-label="prefect-sqlalchemy" data-md-component="logo">
       
-  <img src="../img/prefect-logo-mark-solid-white-500.png" alt="logo">
+  <img src="../img/prefect-logo-mark.png" alt="logo">
 
     </a>
     prefect-sqlalchemy
@@ -396,10 +396,8 @@
     
     
     
-    
     <li class="md-nav__item md-nav__item--nested">
       
-        
         
         
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
@@ -567,58 +565,7 @@
 <span class="n">sqlalchemy_credentials_flow</span><span class="p">()</span>
 </code></pre></div></p>
 <h2 id="database-module"><a class="autorefs autorefs-internal" href="../database/#prefect_sqlalchemy.database">Database Module</a></h2>
-<p>Create a table, insert three rows into it, and fetch two rows repeatedly.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
-
-<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
-    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">)</span>
-    <span class="n">database</span><span class="o">.</span><span class="n">execute_many</span><span class="p">(</span>
-        <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
-        <span class="n">seq_of_parameters</span><span class="o">=</span><span class="p">[</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Ford&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Space&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Me&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Myway 88&quot;</span><span class="p">},</span>
-        <span class="p">],</span>
-    <span class="p">)</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</code></pre></div>
-Load stored database credentials and use in context manager:
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
-
-<span class="n">database_block</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">database_block</span><span class="p">:</span>
-    <span class="o">...</span>
-</code></pre></div></p>
-<p>Create table named customers and insert values; then fetch the first 10 rows.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">SyncDriver</span><span class="p">,</span> <span class="n">ConnectionComponents</span>
-<span class="p">)</span>
-
-<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
-    <span class="n">connection_info</span><span class="o">=</span><span class="n">ConnectionComponents</span><span class="p">(</span>
-        <span class="n">driver</span><span class="o">=</span><span class="n">SyncDriver</span><span class="o">.</span><span class="n">SQLITE_PYSQLITE</span><span class="p">,</span>
-        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;prefect.db&quot;</span>
-    <span class="p">)</span>
-<span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
-    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-        <span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">42</span><span class="p">):</span>
-        <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-            <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Highway </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
-        <span class="p">)</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span>
-        <span class="s2">&quot;SELECT * FROM customers WHERE name = :name;&quot;</span><span class="p">,</span>
-        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">},</span>
-        <span class="n">size</span><span class="o">=</span><span class="mi">10</span>
-    <span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-</code></pre></div>
-Resets connections so <code>fetch_*</code> methods return new results.
+<p>Resets connections so <code>fetch_*</code> methods return new results.
 <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">asyncio</span>
 <span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
 
@@ -629,21 +576,6 @@ Resets connections so <code>fetch_*</code> methods return new results.
         <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
 
 <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">example_run</span><span class="p">())</span>
-</code></pre></div>
-Create an synchronous connection as a context-managed transaction.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
-
-<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(</span><span class="n">begin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
-    <span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM table LIMIT 1;&quot;</span><span class="p">)</span>
-</code></pre></div></p>
-<p>Create an asynchronous connection as a context-managed transacation.
-<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
-
-<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
-<span class="k">async</span> <span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(</span><span class="n">begin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
-    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM table LIMIT 1;&quot;</span><span class="p">))</span>
 </code></pre></div>
 Create a table, insert three rows into it, and fetch all where name is 'Me'.
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
@@ -660,20 +592,7 @@ Create a table, insert three rows into it, and fetch all where name is 'Me'.
     <span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_all</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers WHERE name = :name&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Me&quot;</span><span class="p">})</span>
 </code></pre></div>
-Create an engine.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlalchemyConnector</span>
-
-<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
-<span class="n">engine</span> <span class="o">=</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_client</span><span class="p">(</span><span class="n">client_type</span><span class="o">=</span><span class="s2">&quot;engine&quot;</span><span class="p">)</span>
-</code></pre></div></p>
-<p>Create a context managed connection.
-<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlalchemyConnector</span>
-
-<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
-<span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_client</span><span class="p">(</span><span class="n">client_type</span><span class="o">=</span><span class="s2">&quot;connection&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
-    <span class="o">...</span>
-</code></pre></div>
-Create a table, insert three rows into it, and fetch a row repeatedly.
+Create a table, insert three rows into it, and fetch two rows repeatedly.
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
 
 <span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
@@ -686,10 +605,18 @@ Create a table, insert three rows into it, and fetch a row repeatedly.
             <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Me&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Myway 88&quot;</span><span class="p">},</span>
         <span class="p">],</span>
     <span class="p">)</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">while</span> <span class="n">results</span><span class="p">:</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div>
+Resets connections so <code>fetch_*</code> methods return new results.
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
+
+<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
+    <span class="n">database</span><span class="o">.</span><span class="n">reset_connections</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
 </code></pre></div>
 Create a table and insert two rows into it.
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
@@ -703,6 +630,29 @@ Create a table and insert two rows into it.
             <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Space&quot;</span><span class="p">},</span>
             <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Me&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Myway 88&quot;</span><span class="p">},</span>
         <span class="p">],</span>
+    <span class="p">)</span>
+</code></pre></div>
+Create an engine.
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlalchemyConnector</span>
+
+<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
+<span class="n">engine</span> <span class="o">=</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_client</span><span class="p">(</span><span class="n">client_type</span><span class="o">=</span><span class="s2">&quot;engine&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Create a context managed connection.
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlalchemyConnector</span>
+
+<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_client</span><span class="p">(</span><span class="n">client_type</span><span class="o">=</span><span class="s2">&quot;connection&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
+    <span class="o">...</span>
+</code></pre></div>
+Create a table and insert one row into it.
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
+
+<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
+    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">)</span>
+    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
     <span class="p">)</span>
 </code></pre></div>
 Create an asynchronous engine to PostgreSQL using URL params.
@@ -741,23 +691,71 @@ Create an asynchronous engine to PostgreSQL using URL params.
 
 <span class="n">sqlalchemy_credentials_flow</span><span class="p">()</span>
 </code></pre></div>
-Resets connections so <code>fetch_*</code> methods return new results.
+Create an synchronous connection as a context-managed transaction.
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
 
-<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
-    <span class="n">database</span><span class="o">.</span><span class="n">reset_connections</span><span class="p">()</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
+<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(</span><span class="n">begin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+    <span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM table LIMIT 1;&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p>Create an asynchronous connection as a context-managed transacation.
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">asyncio</span>
+<span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
+
+<span class="n">sqlalchemy_connector</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">with</span> <span class="n">sqlalchemy_connector</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(</span><span class="n">begin</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">connection</span><span class="p">:</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM table LIMIT 1;&quot;</span><span class="p">))</span>
 </code></pre></div>
-Create a table and insert one row into it.
+Create a table, insert three rows into it, and fetch a row repeatedly.
 <div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
 
 <span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;MY_BLOCK&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
     <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">)</span>
-    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+    <span class="n">database</span><span class="o">.</span><span class="n">execute_many</span><span class="p">(</span>
         <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
-        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+        <span class="n">seq_of_parameters</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Ford&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Highway 42&quot;</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Space&quot;</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Me&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="s2">&quot;Myway 88&quot;</span><span class="p">},</span>
+        <span class="p">],</span>
     <span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">while</span> <span class="n">results</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM customers&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div>
+Load stored database credentials and use in context manager:
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="n">SqlAlchemyConnector</span>
+
+<span class="n">database_block</span> <span class="o">=</span> <span class="n">SqlAlchemyConnector</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;BLOCK_NAME&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">database_block</span><span class="p">:</span>
+    <span class="o">...</span>
+</code></pre></div></p>
+<p>Create table named customers and insert values; then fetch the first 10 rows.
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">prefect_sqlalchemy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SqlAlchemyConnector</span><span class="p">,</span> <span class="n">SyncDriver</span><span class="p">,</span> <span class="n">ConnectionComponents</span>
+<span class="p">)</span>
+
+<span class="k">with</span> <span class="n">SqlAlchemyConnector</span><span class="p">(</span>
+    <span class="n">connection_info</span><span class="o">=</span><span class="n">ConnectionComponents</span><span class="p">(</span>
+        <span class="n">driver</span><span class="o">=</span><span class="n">SyncDriver</span><span class="o">.</span><span class="n">SQLITE_PYSQLITE</span><span class="p">,</span>
+        <span class="n">database</span><span class="o">=</span><span class="s2">&quot;prefect.db&quot;</span>
+    <span class="p">)</span>
+<span class="p">)</span> <span class="k">as</span> <span class="n">database</span><span class="p">:</span>
+    <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="s2">&quot;CREATE TABLE IF NOT EXISTS customers (name varchar, address varchar);&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">42</span><span class="p">):</span>
+        <span class="n">database</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;INSERT INTO customers (name, address) VALUES (:name, :address);&quot;</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Highway </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">},</span>
+        <span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">fetch_many</span><span class="p">(</span>
+        <span class="s2">&quot;SELECT * FROM customers WHERE name = :name;&quot;</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Marvin&quot;</span><span class="p">},</span>
+        <span class="n">size</span><span class="o">=</span><span class="mi">10</span>
+    <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </code></pre></div></p>
 
 
@@ -910,10 +908,10 @@ Create a table and insert one row into it.
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.c011b7c0.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.7389ff0e.min.js"></script>
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
       
     
   </body>
