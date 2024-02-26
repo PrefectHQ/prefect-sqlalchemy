@@ -1,8 +1,6 @@
 # prefect-sqlalchemy
 
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/15331990/217670791-ecce97ef-8f14-4519-85b7-40cd28ac2325.png">
-    <br>
     <a href="https://pypi.python.org/pypi/prefect-sqlalchemy/" alt="PyPI version">
         <img alt="PyPI" src="https://img.shields.io/pypi/v/prefect-sqlalchemy?color=0052FF&labelColor=090422"></a>
     <a href="https://github.com/PrefectHQ/prefect-sqlalchemy/" alt="Stars">
@@ -14,29 +12,28 @@
     <br>
     <a href="https://prefect-community.slack.com" alt="Slack">
         <img src="https://img.shields.io/badge/slack-join_community-red.svg?color=0052FF&labelColor=090422&logo=slack" /></a>
-    <a href="https://discourse.prefect.io/" alt="Discourse">
-        <img src="https://img.shields.io/badge/discourse-browse_forum-red.svg?color=0052FF&labelColor=090422&logo=discourse" /></a>
 </p>
 
 Visit the full docs [here](https://PrefectHQ.github.io/prefect-sqlalchemy) to see additional examples and the API reference.
 
 The prefect-sqlalchemy collection makes it easy to connect to a database in your Prefect flows. Check out the examples below to get started!
 
-## Getting Started
+## Getting started
 
 ### Integrate with Prefect flows
 
-Prefect and SQLAlchemy are a data powerhouse duo. With Prefect, your data pipelines are always on track, and with SQLAlchemy, your databases are a snap to handle! Get ready to experience the ultimate data "flow-chemistry"!
+Prefect and SQLAlchemy are a data powerhouse duo. With Prefect, your workflows are orchestratable and observable, and with SQLAlchemy, your databases are a snap to handle! Get ready to experience the ultimate data "flow-chemistry"!
 
 To set up a table, use the `execute` and `execute_many` methods. Then, use the `fetch_many` method to retrieve data in a stream until there's no more data.
 
 By using the `SqlAlchemyConnector` as a context manager, you can make sure that the SQLAlchemy engine and any connected resources are closed properly after you're done with them.
 
-Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#saving-credentials-to-block) to run the examples below!
+Be sure to install [prefect-sqlalchemy](#installation) and [save your credentials to a Prefect block](#saving-credentials-to-block) to run the examples below!
 
 !!! note "Async support"
 
-    `SqlAlchemyConnector` also supports async workflows! Just be sure to save, load, and use an async driver.
+    `SqlAlchemyConnector` also supports async workflows! Just be sure to save, load, and use an async driver as in the example below.
+
     ```python
     from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, AsyncDriver
 
@@ -148,7 +145,7 @@ Be sure to install [prefect-sqlalchemy](#installation) and [save to block](#savi
 
 ## Resources
 
-For more tips on how to use tasks and flows in a Collection, check out [Using Collections](https://orion-docs.prefect.io/collections/usage/)!
+For more tips on how to use tasks and flows provided in a Prefect integration library, check out the [Prefect docs on using integrations](https://docs.prefect.io/integrations/usage/).
 
 ### Installation
 
@@ -158,15 +155,15 @@ Install `prefect-sqlalchemy` with `pip`:
 pip install prefect-sqlalchemy
 ```
 
-Requires an installation of Python 3.7+.
+Requires an installation of Python 3.8 or higher.
 
-We recommend using a Python virtual environment manager such as pipenv, conda or virtualenv.
+We recommend using a Python virtual environment manager such as pipenv, conda, or virtualenv.
 
-These tasks are designed to work with Prefect 2.0. For more information about how to use Prefect, please refer to the [Prefect documentation](https://orion-docs.prefect.io/).
+The tasks in this library are designed to work with Prefect 2. For more information about how to use Prefect, please refer to the [Prefect documentation](https://docs.prefect.io/).
 
-### Saving Credentials to Block
+### Saving credentials to a block
 
-To use the `load` method on Blocks, you must already have a block document [saved through code](https://orion-docs.prefect.io/concepts/blocks/#saving-blocks) or [saved through the UI](https://orion-docs.prefect.io/ui/blocks/).
+To use the `load` method on Blocks, you must have a block document [saved through code](https://docs.prefect.io/concepts/blocks/#saving-blocks) or saved through the UI.
 
 Below is a walkthrough on saving block documents through code; simply create a short script, replacing the placeholders. 
 
@@ -195,7 +192,7 @@ from prefect_sqlalchemy import SqlAlchemyConnector
 SqlAlchemyConnector.load("BLOCK_NAME-PLACEHOLDER")
 ```
 
-The required keywords depend on the desired `driver`. For example, sqlite only requires driver and database specified:
+The required keywords depend upon the desired driver. For example, SQLite requires only the `driver` and `database` arguments:
 
 ```python
 from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
@@ -224,11 +221,11 @@ A list of available blocks in `prefect-sqlalchemy` and their setup instructions 
 
 ### Feedback
 
-If you encounter any bugs while using `prefect-sqlalchemy`, feel free to open an issue in the [prefect-sqlalchemy](https://github.com/PrefectHQ/prefect-sqlalchemy) repository.
+If you encounter any bugs while using `prefect-sqlalchemy`, please open an issue in the [prefect-sqlalchemy](https://github.com/PrefectHQ/prefect-sqlalchemy) repository.
 
-If you have any questions or issues while using `prefect-sqlalchemy`, you can find help in either the [Prefect Discourse forum](https://discourse.prefect.io/) or the [Prefect Slack community](https://prefect.io/slack).
+If you have any questions or issues while using `prefect-sqlalchemy`, you can find help in the [Prefect Community Slack ](https://prefect.io/slack).
 
-Feel free to star or watch [`prefect-sqlalchemy`](https://github.com/PrefectHQ/prefect-sqlalchemy) for updates too!
+Feel free to star or watch [`prefect-sqlalchemy`](https://github.com/PrefectHQ/prefect-sqlalchemy) for updates!
 
 ### Contributing
 
