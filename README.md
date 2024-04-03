@@ -123,7 +123,7 @@ Be sure to install [prefect-sqlalchemy](#installation) and [save your credential
     @task
     async def fetch_data(block_name: str) -> list:
         all_rows = []
-        async with SqlAlchemyConnector.load(block_name) as connector:
+        async with await SqlAlchemyConnector.load(block_name) as connector:
             while True:
                 # Repeated fetch* calls using the same operation will
                 # skip re-executing and instead return the next set of results
@@ -165,7 +165,7 @@ The tasks in this library are designed to work with Prefect 2. For more informat
 
 To use the `load` method on Blocks, you must have a block document [saved through code](https://docs.prefect.io/concepts/blocks/#saving-blocks) or saved through the UI.
 
-Below is a walkthrough on saving block documents through code; simply create a short script, replacing the placeholders. 
+Below is a walkthrough on saving block documents through code; simply create a short script, replacing the placeholders.
 
 ```python
 from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
