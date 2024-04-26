@@ -2,27 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://PrefectHQ.github.io/prefect-sqlalchemy/</loc>
-         <lastmod>2024-02-26</lastmod>
+         <lastmod>2024-04-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://PrefectHQ.github.io/prefect-sqlalchemy/blocks_catalog/</loc>
-         <lastmod>2024-02-26</lastmod>
+         <lastmod>2024-04-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://PrefectHQ.github.io/prefect-sqlalchemy/credentials/</loc>
-         <lastmod>2024-02-26</lastmod>
+         <lastmod>2024-04-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://PrefectHQ.github.io/prefect-sqlalchemy/database/</loc>
-         <lastmod>2024-02-26</lastmod>
+         <lastmod>2024-04-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://PrefectHQ.github.io/prefect-sqlalchemy/examples_catalog/</loc>
-         <lastmod>2024-02-26</lastmod>
+         <lastmod>2024-04-26</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
